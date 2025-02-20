@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;600&family=Noto+Sans:wght@400;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Noto Sans', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6, button {
+  font-family: 'Ubuntu', sans-serif;
+}
+.btn-purple {
+  @apply flex items-center px-4 py-2 w-full text-white bg-purple-500 rounded-lg hover:bg-purple-700;
+}
+.btn-size {
+  @apply text-xs p-1 md:text-sm;
+}
+
+.btn-color {
+  @apply rounded-md text-purple-600 border border-purple-500;
+}
+
+.btn-color-hover:hover {
+  @apply !border-purple-800 !text-white bg-purple-600;
+}
+
+.input-field {
+  @apply rounded outline-none hover:border-purple-500 focus:border-purple-600 focus:ring-1 focus:ring-purple-600;
+}
+
+/* Global Table Styles */
+@layer base {
+  table {
+    @apply min-w-full table-auto border-separate border-spacing-0 bg-white rounded-lg shadow-lg;
+  }
+
+  th, td {
+    @apply px-4 py-2 text-sm font-semibold text-gray-600 ;
+  }
+
+
+  th {
+    @apply border-b-2 border-purple-500 text-left;
+  }
+
+  td {
+    @apply text-sm text-gray-600;
+  }
+
+  tr {
+    @apply hover:bg-gray-200;
+  }
+}
