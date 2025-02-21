@@ -5,7 +5,7 @@ import {
   setPatientId,
   setAudioBlob,
   setAudioUrl,
-  setSelectedFileMetadata,  // Updated to use metadata
+  setSelectedFileMetadata,  
   setTranscription,
   setFormattedReport,
   setIsRecording,
@@ -14,11 +14,14 @@ import {
 } from "@/redux/slices/audioSlice";
 import { uploadAudio } from "./api/audio";
 import Layout from "@/components/Layout";
+import { MdScheduleSend } from "react-icons/md";
+import { BsSendArrowUp } from "react-icons/bs";
 
 
 import { showToast } from "@/components/Toast";
 import AudioControls from "@/components/AudioControl";
 import AuthContext from "@/context/AuthContext";
+import { FaSpinner } from "react-icons/fa6";
 
 const Assistant = () => {
   const dispatch = useDispatch();
@@ -110,7 +113,7 @@ const Assistant = () => {
         dispatch(setFormattedReport(response.data.formattedReport));
         showToast("success", "File uploaded successfully!");
 
-        // Reset form after successful upload to prepare for the next request
+        
         dispatch(resetForm());
       } else {
         showToast("error", "Error: No transcript received from server.");
@@ -193,9 +196,9 @@ const Assistant = () => {
                 <button
                   onClick={handleUploadToBackend} // Upload file and other data to backend
                   disabled={loading}
-                  className="btn-size btn-color btn-color-hover"
+                  className="btn-size btn-color btn-color-hover !p-2 hover:shadow-lg hover:shadow-gray-700  rounded-lg mr-2"
                 >
-                  {loading ? <span>Uploading... </span> : 'send'}
+                  {loading ? <FaSpinner className="animate-spin text-purple-500 text-lg" />: <BsSendArrowUp/>}
                 </button>
               </div>
 

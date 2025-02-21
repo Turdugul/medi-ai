@@ -12,7 +12,7 @@ h1, h2, h3, h4, h5, h6, button {
   font-family: 'Ubuntu', sans-serif;
 }
 .btn-purple {
-  @apply flex items-center px-4 py-2 w-full text-white bg-purple-500 rounded-lg hover:bg-purple-700;
+  @apply flex items-center px-4 py-2 w-full text-white bg-purple-400 rounded-lg hover:bg-purple-700;
 }
 .btn-size {
   @apply text-xs p-1 md:text-sm;
@@ -33,7 +33,7 @@ h1, h2, h3, h4, h5, h6, button {
 /* Global Table Styles */
 @layer base {
   table {
-    @apply min-w-full table-auto border-separate border-spacing-0 bg-white rounded-lg shadow-lg;
+    @apply min-w-full table-auto border-separate border-r-4 border-spacing-0 bg-white rounded-lg shadow-2xl;
   }
 
   th, td {
@@ -42,7 +42,7 @@ h1, h2, h3, h4, h5, h6, button {
 
 
   th {
-    @apply border-b-2 border-purple-500 text-left;
+    @apply border-b-2 border-purple-300 text-left;
   }
 
   td {

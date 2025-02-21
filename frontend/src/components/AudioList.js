@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import AuthContext from "@/context/AuthContext";
 import { downloadAudioFile, fetchAudioRecordById, fetchAudioRecords } from "@/pages/api/audio";
-import Modal from "./Modal"; // Import the Modal component
+import Modal from "./Modal";
 
 const AudioList = () => {
   const { token } = useContext(AuthContext);
@@ -9,6 +9,11 @@ const AudioList = () => {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Search and filter states
+  const [searchId, setSearchId] = useState("");
+  const [filterPatientId, setFilterPatientId] = useState("");
+  const [filterDate, setFilterDate] = useState("");
 
   useEffect(() => {
     const loadAudioRecords = async () => {
@@ -43,9 +48,46 @@ const AudioList = () => {
     }
   };
 
+  // Search and Filter Logic
+  const filteredRecords = audioRecords.filter((record) => {
+    const matchesSearchId = record._id.toLowerCase().includes(searchId.toLowerCase());
+    const matchesPatientId = record.patientId.toLowerCase().includes(filterPatientId.toLowerCase());
+    const matchesDate = record.createdDate.includes(filterDate);
+
+    return (
+      (searchId === "" || matchesSearchId) &&
+      (filterPatientId === "" || matchesPatientId) &&
+      (filterDate === "" || matchesDate)
+    );
+  });
+
   return (
     <div className="container mx-auto p-4">
       <h2 className="text-3xl font-bold text-purple-600 mb-6">🗃️ Recorded Audio Sessions</h2>
+
+      {/* Search and Filter Section */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search by Record ID"
+          value={searchId}
+          onChange={(e) => setSearchId(e.target.value)}
+          className="p-2 border border-gray-300 rounded mr-4"
+        />
+        <input
+          type="text"
+          placeholder="Filter by Patient ID"
+          value={filterPatientId}
+          onChange={(e) => setFilterPatientId(e.target.value)}
+          className="p-2 border border-gray-300 rounded mr-4"
+        />
+        <input
+          type="date"
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
+          className="p-2 border border-gray-300 rounded"
+        />
+      </div>
 
       {/* Table for listing audio records */}
       <div className="overflow-x-auto mb-4">
@@ -62,7 +104,7 @@ const AudioList = () => {
             </tr>
           </thead>
           <tbody>
-            {audioRecords.map((record) => (
+            {filteredRecords.map((record) => (
               <tr key={record._id}>
                 <td>
                   <button

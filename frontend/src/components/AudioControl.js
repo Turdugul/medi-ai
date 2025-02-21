@@ -3,6 +3,7 @@ import { BsRecord2 } from "react-icons/bs";
 import { FaRecordVinyl } from "react-icons/fa6";
 
 
+
 const AudioControls = ({ isRecording, startRecording, stopRecording, onUpload, loading }) => (
   <div className="flex flex-row items-center gap-2">
     {/* 📂 File Upload */}
