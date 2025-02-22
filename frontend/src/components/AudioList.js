@@ -65,29 +65,31 @@ const AudioList = () => {
     <div className="container mx-auto p-4">
       <h2 className="text-3xl font-bold text-purple-600 mb-6">🗃️ Recorded Audio Sessions</h2>
 
-      {/* Search and Filter Section */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search by Record ID"
-          value={searchId}
-          onChange={(e) => setSearchId(e.target.value)}
-          className="p-2 border border-gray-300 rounded mr-4"
-        />
-        <input
-          type="text"
-          placeholder="Filter by Patient ID"
-          value={filterPatientId}
-          onChange={(e) => setFilterPatientId(e.target.value)}
-          className="p-2 border border-gray-300 rounded mr-4"
-        />
-        <input
-          type="date"
-          value={filterDate}
-          onChange={(e) => setFilterDate(e.target.value)}
-          className="p-2 border border-gray-300 rounded"
-        />
-      </div>
+     {/* Search and Filter Section */}
+<div className="mb-4 flex flex-wrap gap-4">
+  <input
+    type="text"
+    placeholder="Search by Record ID"
+    value={searchId}
+    onChange={(e) => setSearchId(e.target.value)}
+    className="input"
+  />
+
+  <input
+    type="text"
+    placeholder="Filter by Patient ID"
+    value={filterPatientId}
+    onChange={(e) => setFilterPatientId(e.target.value)}
+    className="input"
+  />
+
+  <input
+    type="date"
+    value={filterDate}
+    onChange={(e) => setFilterDate(e.target.value)}
+    className="input"
+  />
+</div>
 
       {/* Table for listing audio records */}
       <div className="overflow-x-auto mb-4">
