@@ -1,4 +1,3 @@
-//src/server.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -9,13 +8,11 @@ import { connectDB } from "./config/db.js";
 
 dotenv.config();
 
-
 const app = express();
-const PORT = process.env.PORT || 5000;
-
+const PORT = process.env.PORT || 5000
 
 const corsOptions = {
-  origin: "*", 
+  origin: process.env.FRONTEND_URL || "*",  
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: "Content-Type, Authorization",
 };
@@ -27,40 +24,40 @@ app.use((req, res, next) => {
   next();
 });
 
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); 
 
-
 connectDB();
-
 
 app.use("/api", audioRoutes);
 app.use("/api/auth", authRoutes);
-
 
 app.use((err, req, res, next) => {
   console.error(`Error in ${req.method} ${req.originalUrl}:`, err.stack);
   res.status(500).json({ message: "Internal Server Error" });
 });
 
-
-process.on("SIGTERM", () => {
-  mongoose.connection.close(() => {
+// Handling MongoDB connection closure for SIGTERM and SIGINT
+process.on("SIGTERM", async () => {
+  try {
+    await mongoose.connection.close();  // Close the MongoDB connection
     console.log("MongoDB disconnected due to app termination (SIGTERM)");
     process.exit(0);
-  });
+  } catch (error) {
+    console.error("Error closing MongoDB connection:", error);
+  }
 });
 
-process.on("SIGINT", () => {
-  mongoose.connection.close(() => {
+process.on("SIGINT", async () => {
+  try {
+    await mongoose.connection.close();  // Close the MongoDB connection
     console.log("MongoDB disconnected due to app termination (SIGINT)");
     process.exit(0);
-  });
+  } catch (error) {
+    console.error("Error closing MongoDB connection:", error);
+  }
 });
-
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
-
