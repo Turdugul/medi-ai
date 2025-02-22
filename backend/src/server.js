@@ -9,12 +9,24 @@ import { connectDB } from "./config/db.js";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 5000;
+
+
+const allowedOrigins = [
+  'http://localhost:3000', 
+  process.env.FRONTEND_URL,
+];
 
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || "*",  
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true); 
+    } else {
+      callback(new Error('Not allowed by CORS')); 
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: "Content-Type, Authorization",
+  allowedHeaders: 'Content-Type, Authorization',
 };
 
 app.use(cors(corsOptions)); 
@@ -25,38 +37,35 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); 
+app.use(express.urlencoded({ extended: true }));
 
-connectDB();
+connectDB(); // Connect to MongoDB
 
+// Routes
 app.use("/api", audioRoutes);
 app.use("/api/auth", authRoutes);
 
+// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(`Error in ${req.method} ${req.originalUrl}:`, err.stack);
   res.status(500).json({ message: "Internal Server Error" });
 });
 
-// Handling MongoDB connection closure for SIGTERM and SIGINT
-process.on("SIGTERM", async () => {
+// Handle MongoDB connection shutdown on termination signals
+const shutdownMongo = async () => {
   try {
-    await mongoose.connection.close();  // Close the MongoDB connection
-    console.log("MongoDB disconnected due to app termination (SIGTERM)");
+    await mongoose.connection.close();  
+    console.log("MongoDB disconnected due to app termination.");
     process.exit(0);
   } catch (error) {
     console.error("Error closing MongoDB connection:", error);
+    process.exit(1); 
   }
-});
+};
 
-process.on("SIGINT", async () => {
-  try {
-    await mongoose.connection.close();  // Close the MongoDB connection
-    console.log("MongoDB disconnected due to app termination (SIGINT)");
-    process.exit(0);
-  } catch (error) {
-    console.error("Error closing MongoDB connection:", error);
-  }
-});
+
+process.on("SIGTERM", shutdownMongo);
+process.on("SIGINT", shutdownMongo);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

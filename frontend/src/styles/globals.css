@@ -4,6 +4,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global font settings */
 body {
   font-family: 'Noto Sans', sans-serif;
 }
@@ -11,11 +12,14 @@ body {
 h1, h2, h3, h4, h5, h6, button {
   font-family: 'Ubuntu', sans-serif;
 }
+
+/* Button styles */
 .btn-purple {
   @apply flex items-center px-4 py-2 w-full text-white bg-purple-400 rounded-lg hover:bg-purple-700;
 }
+
 .btn-size {
-  @apply text-xs p-1 md:text-sm;
+  @apply text-xs font-mono p-1 md:text-sm;
 }
 
 .btn-color {
@@ -37,9 +41,8 @@ h1, h2, h3, h4, h5, h6, button {
   }
 
   th, td {
-    @apply px-4 py-2 text-sm font-semibold text-gray-600 ;
+    @apply px-4 py-2 text-sm font-semibold text-gray-600;
   }
-
 
   th {
     @apply border-b-2 border-purple-300 text-left;

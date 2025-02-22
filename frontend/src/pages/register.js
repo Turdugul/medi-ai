@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { registerUser } from "./api/auth";
 import { showToast } from "../components/Toast";
+import { FaSpinner } from "react-icons/fa6";
 
 export default function Register() {
   const { handleSubmit, setValue, formState: { errors } } = useForm();
@@ -80,10 +81,10 @@ export default function Register() {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white py-2 rounded-md mt-4"
+            className="w-full bg-blue-500  text-white py-2 rounded-md mt-4"
             disabled={loading}
           >
-            {loading ? "Loading..." : "Register"}
+            {loading ? <FaSpinner className="animate-spin text-lg" /> : "Register"}
           </button>
         </form>
 

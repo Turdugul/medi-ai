@@ -49,16 +49,15 @@ const Home = () => {
   );
 
   const renderUnauthenticatedContent = () => (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-6 shadow-lg rounded-2xl bg-white text-center">
-        <h3 className="text-xl font-bold text-gray-800">Medi Mate – Dentist’s Assistant Home Page</h3>
+   
+      <div className="w-full max-w-md  mt-6 p-6 shadow-2xl rounded-2xl bg-white text-center">
         <p className="text-gray-600 mt-4">Welcome, Guest!</p>
         <p className="text-gray-600 mt-4">You need to login to access other pages.</p>
         <Link href="/login" className="text-blue-500 mt-2 inline-block">Login</Link>
         <p className="text-gray-600 mt-4">Don't have an account?</p>
         <Link href="/register" className="text-blue-500 mt-2 inline-block">Register</Link>
       </div>
-    </div>
+    
   );
 
   if (loading) {
