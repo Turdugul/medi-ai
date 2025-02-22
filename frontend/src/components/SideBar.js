@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 
 import Link from "next/link";
 import AuthContext from "../context/AuthContext";
-
+import { LuSquareMenu } from "react-icons/lu";
 import { SidebarLink } from "./ActiveLink";
 import { FaSignOutAlt } from "react-icons/fa";
 
@@ -34,10 +34,10 @@ export const Sidebar = () => {
         </Link>
         <button
     onClick={toggleSidebar}
-    
+    className="text-white"
   >
     {!isOpen ? (
-      'menu'  
+      <LuSquareMenu/>  
     ) : (
       ""
     )}
