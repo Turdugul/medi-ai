@@ -145,3 +145,50 @@ export const getAudioRecordById = async (req, res) => {
     res.status(500).json({ error: "Error retrieving record" });
   }
 };
+
+// 🔹 UPDATE Audio Record
+export const updateAudioRecord = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, transcript } = req.body;
+
+    const updatedRecord = await AudioRecord.findByIdAndUpdate(
+      id,
+      { title, transcript },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedRecord) {
+      return res.status(404).json({ error: "Audio record not found" });
+    }
+
+    res.status(200).json({ message: "✅ Audio record updated", data: updatedRecord });
+  } catch (error) {
+    console.error("❌ Error updating record:", error);
+    res.status(500).json({ error: "Error updating audio record" });
+  }
+};
+
+
+// 🔹 DELETE Audio Record
+export const deleteAudioRecord = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const record = await AudioRecord.findById(id);
+    if (!record) return res.status(404).json({ error: "Record not found" });
+
+    const fileId = record.fileId;
+    if (fileId) {
+      await gridFSBucket.delete(new mongoose.Types.ObjectId(fileId));
+      console.log(`🗑️ File with ID ${fileId} deleted from GridFS.`);
+    }
+
+    await AudioRecord.findByIdAndDelete(id);
+
+    res.status(200).json({ message: "✅ Audio record deleted successfully" });
+  } catch (error) {
+    console.error("❌ Error deleting record:", error);
+    res.status(500).json({ error: "Error deleting record" });
+  }
+};

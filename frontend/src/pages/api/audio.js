@@ -1,8 +1,6 @@
-
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5001";
 
 export const uploadAudio = async (file, token, userId, patientId, title) => {
   try {
@@ -87,3 +85,34 @@ export const downloadAudioFile = async (fileId, token, filename) => {
   }
 };
 
+// 📌 Update an audio record (Edit Title/Patient ID)
+export const updateAudioRecord = async (recordId, token, updatedData) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/api/audio/file/${recordId}`, updatedData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.error || error.message || "Failed to update record");
+
+  }
+};
+
+// 📌 Delete an audio record
+export const deleteAudioRecord = async (recordId, token) => {
+  try {
+    await axios.delete(`${API_BASE_URL}/api/audio/file/${recordId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    });
+
+    return { success: true, message: "Audio record deleted successfully" };
+  } catch (error) {
+    throw new Error(error.response?.data?.error || "Failed to delete record");
+  }
+};

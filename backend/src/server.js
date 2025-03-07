@@ -9,11 +9,11 @@ import { connectDB } from "./config/db.js";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 
 const allowedOrigins = [
-  'http://localhost:3000', 
+  'http://localhost:3001', 
   process.env.FRONTEND_URL,
 ];
 

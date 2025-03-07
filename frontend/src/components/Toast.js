@@ -2,7 +2,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export const showToast = (type, message) => {
-  const options = { autoClose: 3000, position: "top-right" }; 
+  const options = { autoClose: 3000, position: "bottom-right" }; 
 
   switch (type) {
     case "success":

@@ -1,4 +1,4 @@
-import { useRef, useState, useContext } from "react";
+import { useRef, useState, useContext, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   setTitle,
@@ -14,10 +14,8 @@ import {
 } from "@/redux/slices/audioSlice";
 import { uploadAudio } from "./api/audio";
 import Layout from "@/components/Layout";
-import { MdScheduleSend } from "react-icons/md";
-import { BsSendArrowUp } from "react-icons/bs";
-
-
+import { MdScheduleSend, MdOutlineContentCopy, MdOutlineFileDownload } from "react-icons/md";
+import { BsSendArrowUp, BsFileEarmarkText, BsMicFill } from "react-icons/bs";
 import { showToast } from "@/components/Toast";
 import AudioControls from "@/components/AudioControl";
 import AuthContext from "@/context/AuthContext";
@@ -27,11 +25,29 @@ const Assistant = () => {
   const dispatch = useDispatch();
   const { title, patientId, audioBlob, audioUrl, selectedFileMetadata, transcription, formattedReport, isRecording, loading } = useSelector((state) => state.audio);
   const { token, user } = useContext(AuthContext);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const audioChunks = useRef([]);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [audioLength, setAudioLength] = useState(0);
+  const audioRef = useRef(null);
 
-  const [selectedFile, setSelectedFile] = useState(null); // Local state for the file
+  // Handle audio metadata loading
+  useEffect(() => {
+    if (audioUrl && audioRef.current) {
+      audioRef.current.addEventListener('loadedmetadata', () => {
+        setAudioLength(Math.round(audioRef.current.duration));
+      });
+    }
+  }, [audioUrl]);
+
+  // Format time duration
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Start recording
   const startRecording = async () => {
@@ -49,166 +65,266 @@ const Assistant = () => {
       };
       mediaRecorderRef.current.start();
       dispatch(setIsRecording(true));
-      showToast("info", "Recording started...");
+      showToast("info", "Recording started");
     } catch (error) {
       console.error("Error accessing microphone:", error);
-      showToast("error", "Microphone access denied or unavailable.");
+      showToast("error", "Microphone access denied or unavailable");
     }
   };
 
   // Stop recording
   const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+    if (mediaRecorderRef.current?.state !== "inactive") {
       mediaRecorderRef.current.stop();
       dispatch(setIsRecording(false));
-
-      // Create the Blob and generate URL
-      const blob = new Blob(audioChunks.current, { type: "audio/wav" });
-      const url = URL.createObjectURL(blob);
-
-      // Store the URL instead of the Blob
-      dispatch(setAudioUrl(url));
-      dispatch(setAudioBlob(blob));
-      audioChunks.current = [];
-
-      showToast("info", "Recording stopped.");
+      showToast("info", "Recording stopped");
     }
   };
 
-  // Handles file selection (choose audio file)
+  // Handle file selection
   const handleFileSelection = (event) => {
     const file = event.target.files[0];
     if (file) {
-      setSelectedFile(file); // Store the actual file in local state
+      if (file.size > 25 * 1024 * 1024) {
+        showToast("error", "File size must be less than 25MB");
+        return;
+      }
+      setSelectedFile(file);
       dispatch(setSelectedFileMetadata({
         name: file.name,
         size: file.size,
         type: file.type,
-      })); // Store only the metadata in Redux
-      showToast("info", "File selected.");
+      }));
+      dispatch(setAudioUrl(URL.createObjectURL(file)));
+      showToast("info", "File selected");
     }
   };
 
   // Upload to backend
   const handleUploadToBackend = async () => {
     if (!title.trim() || !patientId.trim() || !user?._id) {
-      showToast("error", "Please provide all required fields.");
+      showToast("error", "Please provide title and patient ID");
+      return;
+    }
+
+    if (!selectedFile && !audioBlob) {
+      showToast("error", "Please record or select an audio file");
       return;
     }
 
     dispatch(setLoading(true));
-
-    const blob = selectedFile || audioBlob;
-
-    if (!blob) {
-      showToast("error", "No file selected or recorded.");
-      dispatch(setLoading(false));
-      return;
-    }
-
     try {
+      const blob = selectedFile || audioBlob;
       const response = await uploadAudio(blob, token, user._id, patientId, title);
+      
       if (response?.data) {
         dispatch(setTranscription(response.data.transcript));
         dispatch(setFormattedReport(response.data.formattedReport));
-        showToast("success", "File uploaded successfully!");
-
-        
+        showToast("success", "Processing complete!");
         dispatch(resetForm());
       } else {
-        showToast("error", "Error: No transcript received from server.");
+        throw new Error("No response from server");
       }
     } catch (error) {
       console.error("Upload error:", error);
-      showToast("error", "Error uploading audio.");
+      showToast("error", error.message || "Error processing audio");
     } finally {
       dispatch(setLoading(false));
     }
   };
 
-  if (!token || !user) {
-    showToast("error", "Session expired. Please log in again.");
-  }
-
-  // Copy to Clipboard
-  const handleCopyToClipboard = () => {
+  // Copy to clipboard with visual feedback
+  const handleCopyToClipboard = async () => {
     const combinedText = `📄 Formatted Report:\n${formattedReport || "No report available."}\n\n🎤 Transcription:\n${transcription || "No transcription available."}`;
-    navigator.clipboard.writeText(combinedText)
-      .then(() => message.success("Copied to clipboard!"))
-      .catch(() => message.error("Failed to copy."));
+    try {
+      await navigator.clipboard.writeText(combinedText);
+      setCopySuccess(true);
+      showToast("success", "Copied to clipboard");
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      showToast("error", "Failed to copy");
+    }
   };
 
-  // Download as .txt file
+  // Download as formatted text file
   const handleDownloadReport = () => {
     const combinedText = `📄 Formatted Report:\n${formattedReport || "No report available."}\n\n🎤 Transcription:\n${transcription || "No transcription available."}`;
     const blob = new Blob([combinedText], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "Transcription_Report.txt";
+    a.download = `${title || 'Report'}_${new Date().toISOString().split('T')[0]}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+    showToast("success", "Report downloaded");
   };
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center p-8">
-        <h1 className="text-3xl font-bold text-purple-600 mb-6">Dentist’s Assistant</h1>
-        <div className="bg-white shadow-lg p-6 rounded-xl w-full max-w-3xl">
-          <div className="p-6">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-4 mb-4">
-              <input
-                type="text"
-                placeholder="Title"
-                value={title}
-                onChange={(e) => dispatch(setTitle(e.target.value))}
-                className="z-0 border p-2 w-full sm:w-1/3 rounded mb-2 sm:mb-0 input-field"
-              />
-              <input
-                type="text"
-                placeholder="Patient ID"
-                value={patientId}
-                onChange={(e) => dispatch(setPatientId(e.target.value))}
-                className="border p-2 w-full sm:w-1/3 rounded input-field"
-              />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Header Section */}
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl font-bold text-gray-800 tracking-tight">
+              Dentist's Assistant
+            </h1>
+            <p className="text-gray-600">
+              Record or upload audio for instant transcription and analysis
+            </p>
+          </div>
+
+          {/* Main Content Card */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 lg:p-8 space-y-6 border border-gray-100">
+            {/* Input Fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter session title"
+                  value={title}
+                  onChange={(e) => dispatch(setTitle(e.target.value))}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 
+                    focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+                    transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Patient ID <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter patient identifier"
+                  value={patientId}
+                  onChange={(e) => dispatch(setPatientId(e.target.value))}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 
+                    focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+                    transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                />
+              </div>
             </div>
 
-            <div className="flex flex-col">
-              <h3 className="text-purple-600 p-2">Transcription & Formatted Report</h3>
-              <textarea
-  value={`📄 Formatted Report:\n${formattedReport || "No report available."}\n\n🎤 Transcription:\n${transcription || "No transcription available."}`}
-  rows={15}
-  onClick={(e) => e.target.select()}
-  readOnly
-  className="w-full p-4 border rounded-lg border-gray-300 bg-white text-gray-700  resize-none"
-/>
-            </div>
-
-            <div className="flex flex-row justify-between items-start sm:items-center mt-2 p-2 gap-2">
-              <div className="flex flex-row items-start gap-1 w-full md:w-auto">
+            {/* Audio Controls & Upload Section */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 
+              p-4 rounded-xl bg-gray-50/50 border border-gray-100">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <AudioControls
                   isRecording={isRecording}
                   startRecording={startRecording}
                   stopRecording={stopRecording}
-                  onUpload={handleFileSelection} // File selection handler
+                  onUpload={handleFileSelection}
                   loading={loading}
                 />
                 <button
-                  onClick={handleUploadToBackend} // Upload file and other data to backend
-                  disabled={loading}
-                  className="btn-size btn-color btn-color-hover !p-2 hover:shadow-lg hover:shadow-gray-700  rounded-lg mr-2"
+                  onClick={handleUploadToBackend}
+                  disabled={loading || (!audioBlob && !selectedFile)}
+                  className={`
+                    flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
+                    shadow-md hover:shadow-lg transform hover:-translate-y-0.5 
+                    transition-all duration-200
+                    ${loading || (!audioBlob && !selectedFile)
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:scale-[1.02]'
+                    }
+                  `}
                 >
-                  {loading ? <FaSpinner className="animate-spin text-purple-500 text-lg" />: <BsSendArrowUp/>}
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin w-4 h-4" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <BsSendArrowUp className="w-4 h-4" />
+                      <span>Process</span>
+                    </>
+                  )}
                 </button>
               </div>
 
-              <div className="flex flex-row justify-start text-purple-600 gap-2 md:w-auto">
-                <button onClick={handleCopyToClipboard} className="btn-color-hover btn-color btn-size">Copy</button>
-                <button onClick={handleDownloadReport} className="btn-size btn-color-hover btn-color">Save</button>
-              </div>
+              {/* File Info */}
+              {(selectedFileMetadata || audioUrl) && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 
+                  bg-blue-50 text-blue-700 rounded-lg text-xs">
+                  <BsFileEarmarkText className="w-3.5 h-3.5" />
+                  <span className="font-medium">
+                    {selectedFileMetadata?.name || 'Recorded Audio'}
+                    {audioLength ? ` (${formatDuration(audioLength)})` : ''}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {audioUrl && <audio controls src={audioUrl} className="w-2/3 mt-2" />}
+            {/* Audio Player */}
+            {audioUrl && (
+              <div className="space-y-1.5">
+                <h3 className="text-xs font-medium text-gray-700">Preview</h3>
+                <audio
+                  ref={audioRef}
+                  controls
+                  src={audioUrl}
+                  className="w-full h-10 rounded-lg"
+                />
+              </div>
+            )}
+
+            {/* Transcription Area */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-medium text-gray-800">
+                  Transcription & Report
+                </h3>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handleCopyToClipboard}
+                    className={`
+                      p-1.5 rounded-lg transition-all duration-200
+                      ${copySuccess 
+                        ? 'bg-green-100 text-green-600' 
+                        : 'hover:bg-gray-100 text-gray-600'
+                      }
+                    `}
+                    title="Copy to clipboard"
+                  >
+                    <MdOutlineContentCopy className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleDownloadReport}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 
+                      transition-all duration-200"
+                    title="Download report"
+                  >
+                    <MdOutlineFileDownload className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="relative">
+                <textarea
+                  value={`📄 Formatted Report:\n${formattedReport || "No report available."}\n\n🎤 Transcription:\n${transcription || "No transcription available."}`}
+                  rows={12}
+                  readOnly
+                  className="w-full p-4 rounded-xl border border-gray-200 
+                    focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+                    transition-all duration-200 bg-white/50 backdrop-blur-sm 
+                    font-mono text-gray-700 resize-none"
+                />
+                {loading && (
+                  <div className="absolute inset-0 bg-white/50 backdrop-blur-sm 
+                    flex items-center justify-center rounded-xl">
+                    <div className="flex items-center gap-3 px-4 py-2 bg-white 
+                      rounded-lg shadow-lg">
+                      <FaSpinner className="animate-spin text-blue-600" />
+                      <span className="text-gray-700 font-medium">
+                        Processing audio...
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

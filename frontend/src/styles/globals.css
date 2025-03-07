@@ -1,65 +1,227 @@
-@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;600&family=Noto+Sans:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Global font settings */
-body {
-  font-family: 'Noto Sans', sans-serif;
+:root {
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --secondary: #6366f1;
+  --accent: #8b5cf6;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --background: #ffffff;
+  --foreground: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
 }
 
-h1, h2, h3, h4, h5, h6, button {
-  font-family: 'Ubuntu', sans-serif;
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
 
 @layer components {
+  /* Modern Card Styles */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 
+           hover:shadow-md transition-all duration-200;
+  }
+
+  /* Enhanced Button Styles */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg
+           font-medium transition-all duration-200 focus:outline-none
+           focus:ring-2 focus:ring-offset-2 disabled:opacity-50
+           disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700
+           focus:ring-blue-500 shadow-sm hover:shadow-md;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200
+           focus:ring-gray-500 shadow-sm hover:shadow-md;
+  }
+
+  /* Modern Input Styles */
   .input {
-    @apply w-64 px-4 py-1 border border-gray-300 rounded-lg shadow-sm 
-           focus:ring-1 focus:!ring-purple-400 focus:!border-purple-400 
-           transition-all outline-none;
+    @apply w-full px-4 py-2 rounded-lg border border-gray-200
+           bg-white text-gray-900 placeholder-gray-400
+           focus:outline-none focus:ring-2 focus:ring-blue-500
+           focus:border-transparent transition-all duration-200;
   }
 
-/* Button styles */
-.btn-purple {
-  @apply flex items-center px-4 py-2 w-full text-white bg-purple-400 rounded-lg hover:bg-purple-700;
-}
-
-.btn-size {
-  @apply text-xs font-mono p-1 md:text-sm;
-}
-
-.btn-color {
-  @apply rounded-md text-purple-600 border border-purple-500;
-}
-
-.btn-color-hover:hover {
-  @apply !border-purple-800 !text-white bg-purple-600;
-}
-
-.input-field {
-  @apply rounded outline-none hover:border-purple-500 focus:border-purple-600 focus:ring-1 focus:ring-purple-600;
-}
-}
-/* Global Table Styles */
-@layer base {
-  table {
-    @apply min-w-full table-auto border-separate border-r-4 border-spacing-0 bg-white rounded-lg shadow-2xl;
+  /* Table Styles */
+  .table {
+    @apply w-full border-collapse;
   }
 
-  th, td {
-    @apply px-4 py-2 text-sm font-semibold text-gray-600;
+  .table th {
+    @apply px-6 py-3 text-left text-sm font-medium text-gray-500 uppercase tracking-wider;
   }
 
-  th {
-    @apply border-b-2 border-purple-300 text-left;
+  .table td {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
   }
 
-  td {
-    @apply text-sm text-gray-600;
+  /* Loading Spinner */
+  .spinner {
+    @apply animate-spin text-blue-500;
+  }
+}
+
+/* Smooth Transitions */
+@layer utilities {
+  .transition-smooth {
+    @apply transition-all duration-300 ease-in-out;
   }
 
-  tr {
-    @apply hover:bg-gray-200;
+  .transition-bounce {
+    @apply transition-all duration-300 cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
+}
+
+/* Modern Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out forwards;
+}
+
+/* Glass Effect */
+.glass {
+  @apply bg-white/80 backdrop-blur-md border border-white/20;
+}
+
+/* Modern Scrollbar */
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors duration-200;
+}
+
+/* Focus Styles */
+*:focus-visible {
+  @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+}
+
+/* Selection Styles */
+::selection {
+  @apply bg-blue-100 text-blue-900;
+}
+
+/* Loading States */
+.loading {
+  @apply relative overflow-hidden;
+}
+
+.loading::after {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Modal Animations */
+@keyframes modalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-modal-enter {
+  animation: modalEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+const cssAnimation = `
+@keyframes toast-enter {
+  from {
+    transform: translateX(100%) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-exit {
+  from {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%) scale(0.95);
+    opacity: 0;
+  }
+}
+
+.animate-toast-enter {
+  animation: toast-enter 0.2s ease-out forwards;
+}
+
+.Toastify__toast--exit {
+  animation: toast-exit 0.2s ease-in forwards !important;
 }

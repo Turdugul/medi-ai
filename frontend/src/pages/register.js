@@ -35,62 +35,75 @@ export default function Register() {
   };
 
   return (
-    <div className="flex flex-col gap-3 items-center justify-center min-h-screen bg-gray-100 px-4">
-      <h2 className="text-3xl font-bold">Medi Mate</h2>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center px-4 py-8">
+      <div className="w-full max-w-md">
+        <h2 className="text-4xl font-bold text-center text-gray-800 mb-2 tracking-tight">
+          Medi Mate
+        </h2>
+        <p className="text-center text-gray-600 mb-8">Create your account</p>
 
-      <div className="p-6 bg-white shadow-lg rounded-md w-full max-w-sm">
-        <h3 className="text-xl text-center">Register</h3>
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 space-y-6 border border-gray-100">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Name Input */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Full Name</label>
+              <input
+                type="text"
+                placeholder="Enter your full name"
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                onChange={(e) => setValue("name", e.target.value, { shouldValidate: true })}
+              />
+              {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+            </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Name Input */}
-          <div>
-            <label className="block text-gray-700 mb-1">Name</label>
-            <input
-              type="text"
-              placeholder="Enter your full name"
-              className="w-full px-4 py-2 border border-gray-300 rounded-md"
-              onChange={(e) => setValue("name", e.target.value, { shouldValidate: true })}
-            />
-            {errors.name && <p className="text-red-500">{errors.name.message}</p>}
-          </div>
+            {/* Email Input */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Email Address</label>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                onChange={(e) => setValue("email", e.target.value, { shouldValidate: true })}
+              />
+              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+            </div>
 
-          {/* Email Input */}
-          <div>
-            <label className="block text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="w-full px-4 py-2 border border-gray-300 rounded-md"
-              onChange={(e) => setValue("email", e.target.value, { shouldValidate: true })}
-            />
-            {errors.email && <p className="text-red-500">{errors.email.message}</p>}
-          </div>
+            {/* Password Input */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Password</label>
+              <input
+                type="password"
+                placeholder="Enter a strong password"
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                onChange={(e) => setValue("password", e.target.value, { shouldValidate: true })}
+              />
+              {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
+            </div>
 
-          {/* Password Input */}
-          <div>
-            <label className="block text-gray-700 mb-1">Password</label>
-            <input
-              type="password"
-              placeholder="Enter a strong password"
-              className="w-full px-4 py-2 border border-gray-300 rounded-md"
-              onChange={(e) => setValue("password", e.target.value, { shouldValidate: true })}
-            />
-            {errors.password && <p className="text-red-500">{errors.password.message}</p>}
-          </div>
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin text-lg" />
+                  <span>Creating account...</span>
+                </>
+              ) : (
+                "Create Account"
+              )}
+            </button>
+          </form>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="w-full bg-blue-500  text-white py-2 rounded-md mt-4"
-            disabled={loading}
-          >
-            {loading ? <FaSpinner className="animate-spin text-lg" /> : "Register"}
-          </button>
-        </form>
-
-        <p className="text-center mt-4">
-          Already have an account? <Link href="/login" className="text-blue-500">Login</Link>
-        </p>
+          <p className="text-center text-gray-600 text-sm">
+            Already have an account?{" "}
+            <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200">
+              Sign in
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
