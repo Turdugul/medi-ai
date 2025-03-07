@@ -11,17 +11,21 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Log environment variables to ensure they're being loaded properly
 console.log("Frontend URL from ENV:", process.env.FRONTEND_URL);
 console.log("API running on port:", PORT);
+
 
 const allowedOrigins = [
   'http://localhost:3001', 
   process.env.FRONTEND_URL, 
-]
+  'https://dentists-assistant-ai-frontend.onrender.com', 
+];
+
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true); // Allow the request
+      callback(null, true); 
     } else {
       console.log(`CORS Blocked: ${origin}`); 
       callback(new Error('Not allowed by CORS')); 
@@ -31,7 +35,7 @@ const corsOptions = {
   allowedHeaders: 'Content-Type, Authorization',
 };
 
-app.use(cors(corsOptions)); 
+app.use(cors(corsOptions));
 
 
 app.use((req, res, next) => {
@@ -39,16 +43,21 @@ app.use((req, res, next) => {
   next();
 });
 
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-connectDB()  
+// Connect to MongoDB
+connectDB()
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
 // Routes
 app.use("/api", audioRoutes);
 app.use("/api/auth", authRoutes);
+
+// Handle preflight (OPTIONS) requests
+app.options("*", cors(corsOptions)); // Handle preflight for all routes
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -71,6 +80,7 @@ const shutdownMongo = async () => {
 process.on("SIGTERM", shutdownMongo);
 process.on("SIGINT", shutdownMongo);
 
+// Start the Express server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
