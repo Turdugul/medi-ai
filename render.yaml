@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: dentists-assistant-frontend
+    env: node
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+    headers:
+      - path: /*
+        name: Access-Control-Allow-Origin
+        value: "*"
+    autoDeploy: true
+    healthCheckPath: /
+
+  - type: web
+    name: dentists-assistant-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+    headers:
+      - path: /*
+        name: Access-Control-Allow-Origin
+        value: "*"
+    autoDeploy: true
+    healthCheckPath: / 
