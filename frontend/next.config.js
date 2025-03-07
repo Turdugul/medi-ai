@@ -1,9 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  images: {
-    domains: ['localhost'],
-  },
+  output: 'standalone',
+  poweredByHeader: false,
   async headers() {
     return [
       {
@@ -16,17 +15,6 @@ const nextConfig = {
       },
     ];
   },
-  output: 'standalone',
-  poweredByHeader: false,
-  experimental: {
-    outputFileTracingRoot: undefined,
-  },
-  serverRuntimeConfig: {
-    PORT: process.env.PORT || 3001
-  },
-  env: {
-    PORT: process.env.PORT || 3001
-  }
 };
 
 module.exports = nextConfig; 

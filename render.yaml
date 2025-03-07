@@ -2,47 +2,31 @@ services:
   - type: web
     name: dentists-assistant-frontend
     env: node
-    buildCommand: cd frontend && npm install && npm run build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
-    startCommand: cd frontend/.next/standalone && PORT=$PORT node server.js
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && node .next/standalone/server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        fromService:
-          type: web
-          name: dentists-assistant-frontend
-          envVarKey: RENDER_PORT
+        value: 10000
       - key: NEXT_PUBLIC_API_URL
-        sync: false
-    headers:
-      - path: /*
-        name: Access-Control-Allow-Origin
-        value: "*"
+        value: https://dentists-assistant-ai-backend.onrender.com
     autoDeploy: true
-    healthCheckPath: /
 
   - type: web
     name: dentists-assistant-backend
     env: node
     buildCommand: cd backend && npm install
-    startCommand: cd backend && PORT=$PORT npm start
+    startCommand: cd backend && node index.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        fromService:
-          type: web
-          name: dentists-assistant-backend
-          envVarKey: RENDER_PORT
+        value: 10000
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-    headers:
-      - path: /*
-        name: Access-Control-Allow-Origin
-        value: "*"
-    autoDeploy: true
-    healthCheckPath: / 
+    autoDeploy: true 
