@@ -79,7 +79,10 @@ export const uploadAudio = async (req, res) => {
 
 export const getAudioFiles = async (req, res) => {
   try {
-    const audioFiles = await AudioRecord.find().sort({ createdAt: -1 });
+    const audioFiles = await AudioRecord.find()
+      .sort({ createdAt: -1 })
+      .exec();
+      
     res.status(200).json({
       message: "✅ Audio records retrieved successfully",
       data: audioFiles,

@@ -26,6 +26,7 @@ const Assistant = () => {
   const { title, patientId, audioBlob, audioUrl, selectedFileMetadata, transcription, formattedReport, isRecording, loading } = useSelector((state) => state.audio);
   const { token, user } = useContext(AuthContext);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const audioChunks = useRef([]);
@@ -76,19 +77,23 @@ const Assistant = () => {
   const stopRecording = () => {
     if (mediaRecorderRef.current?.state !== "inactive") {
       mediaRecorderRef.current.stop();
+      setSelectedFile(null);
+      dispatch(setSelectedFileMetadata(null));
       dispatch(setIsRecording(false));
       showToast("info", "Recording stopped");
     }
   };
 
   // Handle file selection
-  const handleFileSelection = (event) => {
+  const handleFileSelection = async (event) => {
     const file = event.target.files[0];
     if (file) {
       if (file.size > 25 * 1024 * 1024) {
         showToast("error", "File size must be less than 25MB");
+        event.target.value = '';
         return;
       }
+      dispatch(setAudioBlob(null));
       setSelectedFile(file);
       dispatch(setSelectedFileMetadata({
         name: file.name,
@@ -112,16 +117,25 @@ const Assistant = () => {
       return;
     }
 
-    dispatch(setLoading(true));
+    setIsProcessing(true);
     try {
-      const blob = selectedFile || audioBlob;
-      const response = await uploadAudio(blob, token, user._id, patientId, title);
+      const audioToSend = audioBlob || selectedFile;
+      const response = await uploadAudio(audioToSend, token, user._id, patientId, title);
       
       if (response?.data) {
         dispatch(setTranscription(response.data.transcript));
         dispatch(setFormattedReport(response.data.formattedReport));
         showToast("success", "Processing complete!");
-        dispatch(resetForm());
+        
+        setSelectedFile(null);
+        dispatch(setAudioBlob(null));
+        dispatch(setAudioUrl(null));
+        dispatch(setSelectedFileMetadata(null));
+        
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) {
+          fileInput.value = '';
+        }
       } else {
         throw new Error("No response from server");
       }
@@ -129,7 +143,7 @@ const Assistant = () => {
       console.error("Upload error:", error);
       showToast("error", error.message || "Error processing audio");
     } finally {
-      dispatch(setLoading(false));
+      setIsProcessing(false);
     }
   };
 
@@ -216,22 +230,21 @@ const Assistant = () => {
                   startRecording={startRecording}
                   stopRecording={stopRecording}
                   onUpload={handleFileSelection}
-                  loading={loading}
                 />
                 <button
                   onClick={handleUploadToBackend}
-                  disabled={loading || (!audioBlob && !selectedFile)}
+                  disabled={isProcessing || (!audioBlob && !selectedFile)}
                   className={`
                     flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
                     shadow-md hover:shadow-lg transform hover:-translate-y-0.5 
                     transition-all duration-200
-                    ${loading || (!audioBlob && !selectedFile)
+                    ${isProcessing || (!audioBlob && !selectedFile)
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:scale-[1.02]'
                     }
                   `}
                 >
-                  {loading ? (
+                  {isProcessing ? (
                     <>
                       <FaSpinner className="animate-spin w-4 h-4" />
                       <span>Processing...</span>
@@ -302,7 +315,7 @@ const Assistant = () => {
                 </div>
               </div>
               <div className="relative">
-                <textarea
+              <textarea
                   value={`📄 Formatted Report:\n${formattedReport || "No report available."}\n\n🎤 Transcription:\n${transcription || "No transcription available."}`}
                   rows={12}
                   readOnly
@@ -311,7 +324,7 @@ const Assistant = () => {
                     transition-all duration-200 bg-white/50 backdrop-blur-sm 
                     font-mono text-gray-700 resize-none"
                 />
-                {loading && (
+                {isProcessing && (
                   <div className="absolute inset-0 bg-white/50 backdrop-blur-sm 
                     flex items-center justify-center rounded-xl">
                     <div className="flex items-center gap-3 px-4 py-2 bg-white 

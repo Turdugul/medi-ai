@@ -1,46 +1,62 @@
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useState } from "react";
 import { BsRecord2, BsUpload, BsStopFill } from "react-icons/bs";
 import { FaRecordVinyl } from "react-icons/fa6";
 import { FiLoader } from "react-icons/fi";
 
 // Memoize the upload button component
-const UploadButton = memo(({ loading, onUpload }) => (
-  <div className="relative group">
-    <label 
-      className={`
-        flex items-center justify-center gap-1.5 px-3 py-2
-        bg-gradient-to-r from-purple-600 to-indigo-600 
-        text-white rounded-lg text-sm font-medium 
-        shadow-md hover:shadow-lg
-        transform hover:-translate-y-0.5 
-        transition-all duration-200 cursor-pointer
-        ${loading ? 'opacity-80 cursor-wait' : 'hover:scale-[1.02]'}
-      `}
-      role="button"
-      aria-label={loading ? "Uploading..." : "Upload audio file"}
-    >
-      {loading ? (
-        <>
-          <FiLoader className="w-4 h-4 animate-spin" />
-          <span>Uploading...</span>
-        </>
-      ) : (
-        <>
-          <BsUpload className="w-4 h-4" />
-          <span>Upload</span>
-        </>
-      )}
-      <input 
-        type="file" 
-        accept="audio/*" 
-        className="hidden" 
-        onChange={onUpload}
-        disabled={loading} 
-        aria-label="Upload audio file"
-      />
-    </label>
-  </div>
-));
+const UploadButton = memo(({ onUpload }) => {
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    setIsUploading(true);
+    try {
+      await onUpload(event);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="relative group">
+      <label 
+        className={`
+          flex items-center justify-center gap-1.5 px-3 py-2
+          bg-gradient-to-r from-purple-600 to-indigo-600 
+          text-white rounded-lg text-sm font-medium 
+          shadow-md hover:shadow-lg
+          transform hover:-translate-y-0.5 
+          transition-all duration-200 cursor-pointer
+          ${isUploading ? 'opacity-80 cursor-wait' : 'hover:scale-[1.02]'}
+        `}
+        role="button"
+        aria-label={isUploading ? "Uploading..." : "Upload audio file"}
+      >
+        {isUploading ? (
+          <>
+            <FiLoader className="w-4 h-4 animate-spin" />
+            <span>Uploading...</span>
+          </>
+        ) : (
+          <>
+            <BsUpload className="w-4 h-4" />
+            <span>Upload</span>
+          </>
+        )}
+        <input 
+          type="file" 
+          accept="audio/*" 
+          className="hidden" 
+          onChange={handleUpload}
+          disabled={isUploading} 
+          aria-label="Upload audio file"
+        />
+      </label>
+    </div>
+  );
+});
 
 // Memoize the record button component
 const RecordButton = memo(({ isRecording, onToggleRecording, loading }) => (
@@ -96,7 +112,7 @@ const AudioControls = ({ isRecording, startRecording, stopRecording, onUpload, l
 
   return (
     <div className="flex items-center gap-2">
-      <UploadButton loading={loading} onUpload={onUpload} />
+      <UploadButton onUpload={onUpload} />
       <RecordButton 
         isRecording={isRecording} 
         onToggleRecording={handleToggleRecording}

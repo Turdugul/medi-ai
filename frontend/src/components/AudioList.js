@@ -2,15 +2,15 @@
 import React, { useState, useEffect, useContext, useCallback, memo, useMemo } from "react";
 import AuthContext from "@/context/AuthContext";
 import { fetchAudioRecords, fetchAudioRecordById, deleteAudioRecord, updateAudioRecord, downloadAudioFile } from "@/pages/api/audio";
-import { FaSearch, FaUserAlt, FaCalendar, FaExternalLinkAlt, FaDownload, FaTimes, FaEllipsisV, FaEdit, FaTrash, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaSearch, FaUserAlt, FaCalendar, FaExternalLinkAlt, FaDownload, FaTimes, FaEllipsisV, FaEdit, FaTrash, FaSpinner } from "react-icons/fa";
 import Modal from "./Modal";
-import { LoadingContent, ErrorContent, ConfirmationContent, FormContent } from "./ModalContents";
+import { LoadingContent, FormContent } from "./ModalContents";
 import SearchInput from "./common/SearchInput";
 import { TableHeader, TableRow, RowActionsMenu } from "./common/Table";
 import Pagination from "./common/Pagination";
 import { showToast } from "./Toast";
 
-// Define table columns
+
 const TABLE_COLUMNS = [
   { key: 'createdDate', label: 'Date', align: 'left' },
   { key: 'createdTime', label: 'Time', align: 'left' },
@@ -22,29 +22,35 @@ const TABLE_COLUMNS = [
 
 // Memoize the record details component
 const RecordDetails = memo(({ record }) => (
-  <div className="space-y-6 animate-scale">
-    <div className="animate-fade-in-up">
-      <h2 className="text-2xl font-bold text-gray-800 mb-1">{record.title}</h2>
-      <p className="text-gray-600">Detailed session information</p>
+  <div className="animate-scale space-y-3">
+    {/* Title and Patient ID */}
+    <div className="space-y-1">
+      <h2 className="text-xl font-bold text-gray-800">{record.title}</h2>
+      <div className="flex items-center gap-2 text-gray-600">
+        <FaUserAlt className="w-3.5 h-3.5" />
+        <span className="text-sm">Patient ID: {record.patientId}</span>
+      </div>
     </div>
 
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      {[
-        { label: 'Patient ID', value: record.patientId },
-        { label: 'Date', value: record.createdDate },
-        { label: 'Time', value: record.createdTime }
-      ].map(({ label, value }) => (
-        <div key={label} className="card p-4 transform transition-all duration-300 hover:scale-[1.02] hover:shadow-md animate-fade-in-up">
-          <p className="text-sm text-gray-500 mb-1">{label}</p>
-          <p className="font-medium text-gray-800">{value}</p>
+    {/* Info Cards */}
+    <div className="grid grid-cols-2 gap-2">
+      <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+        <div className="flex items-center gap-1.5 text-gray-600">
+          <FaCalendar className="w-3.5 h-3.5" />
+          <span className="text-sm">{record.createdDate}</span>
         </div>
-      ))}
+      </div>
+      <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+        <div className="flex items-center gap-1.5 text-gray-600">
+          <FaCalendar className="w-3.5 h-3.5" />
+          <span className="text-sm">{record.createdTime}</span>
+        </div>
+      </div>
     </div>
 
-    <div className="space-y-2 animate-fade-in-up">
-      <h3 className="text-lg font-medium text-gray-800">Report</h3>
-      <pre className="card p-6 max-h-96 overflow-auto whitespace-pre-wrap font-mono text-gray-700 text-sm
-        transform transition-all duration-300 hover:shadow-md">
+    {/* Report */}
+    <div className="bg-gray-50 rounded-lg border border-gray-200">
+      <pre className="p-3 whitespace-pre-wrap font-mono text-gray-700 text-sm max-h-[400px] overflow-auto">
         {record.formattedReport}
       </pre>
     </div>
@@ -133,7 +139,13 @@ const AudioList = () => {
 
   // Memoize filtered records with pagination
   const { paginatedRecords, totalPages } = useMemo(() => {
-    const filtered = audioRecords.filter((record) => record._id.includes(searchId));
+    const sortedRecords = [...audioRecords].sort((a, b) => {
+      const dateA = new Date(`${a.createdDate} ${a.createdTime}`);
+      const dateB = new Date(`${b.createdDate} ${b.createdTime}`);
+      return dateB - dateA;
+    });
+    
+    const filtered = sortedRecords.filter((record) => record._id.includes(searchId));
     const total = Math.ceil(filtered.length / recordsPerPage);
     const start = (currentPage - 1) * recordsPerPage;
     const paginated = filtered.slice(start, start + recordsPerPage);
@@ -189,7 +201,7 @@ const AudioList = () => {
           <FaEllipsisV className="w-4 h-4" />
         </button>
         {openMenuId === record._id && (
-          <div className="absolute right-0 mt-2 z-50">
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 z-50">
             <RowActionsMenu
               isOpen={true}
               onClose={() => setOpenMenuId(null)}
@@ -288,26 +300,42 @@ const AudioList = () => {
         )}
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal 
-        isOpen={!!deletingRecord} 
-        onClose={() => setDeletingRecord(null)}
-        className="z-50 relative"
-      >
-        {deletingRecord && (
-          <ConfirmationContent
-            title="Delete Record"
-            message={`Are you sure you want to delete the record "${deletingRecord.title}"? This action cannot be undone.`}
-            icon={FaTrash}
-            primaryAction={() => handleDeleteRecord(deletingRecord._id)}
-            secondaryAction={() => setDeletingRecord(null)}
-            primaryLabel="Delete"
-            secondaryLabel="Cancel"
-            primaryVariant="danger"
-            isLoading={isLoading}
-          />
-        )}
-      </Modal>
+      {/* Delete Confirmation - Inline */}
+      {deletingRecord && (
+        <div className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-xl p-4 max-w-md w-full mx-4 animate-scale">
+            <div className="flex items-center gap-3 text-red-600 mb-3">
+              <FaTrash className="w-5 h-5" />
+              <h3 className="text-lg font-semibold">Delete Record</h3>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Are you sure you want to delete "{deletingRecord.title}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeletingRecord(null)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteRecord(deletingRecord._id)}
+                disabled={isLoading}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <FaSpinner className="w-4 h-4 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Delete</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

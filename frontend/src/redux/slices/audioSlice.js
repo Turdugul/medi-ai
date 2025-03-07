@@ -35,8 +35,12 @@ const audioSlice = createSlice({
       state.audioUrl = action.payload;
     },
     setSelectedFileMetadata: (state, action) => {
-      const { name, size, type } = action.payload;
-      state.selectedFileMetadata = { name, size, type };
+      if (action.payload === null) {
+        state.selectedFileMetadata = { name: "", size: 0, type: "" };
+      } else {
+        const { name, size, type } = action.payload;
+        state.selectedFileMetadata = { name, size, type };
+      }
     },
     setTranscription: (state, action) => {
       state.transcription = action.payload;
@@ -65,7 +69,7 @@ export const {
   setPatientId,
   setAudioBlob,
   setAudioUrl,
-  setSelectedFileMetadata, // Updated to use metadata
+  setSelectedFileMetadata,
   setTranscription,
   setFormattedReport,
   setIsRecording,
