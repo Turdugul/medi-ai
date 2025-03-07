@@ -3,12 +3,15 @@ services:
     name: dentists-assistant-frontend
     env: node
     buildCommand: cd frontend && npm install && npm run build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
-    startCommand: cd frontend/.next/standalone && node server.js
+    startCommand: cd frontend/.next/standalone && PORT=$PORT node server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3001
+        fromService:
+          type: web
+          name: dentists-assistant-frontend
+          envVarKey: RENDER_PORT
       - key: NEXT_PUBLIC_API_URL
         sync: false
     headers:
@@ -22,12 +25,15 @@ services:
     name: dentists-assistant-backend
     env: node
     buildCommand: cd backend && npm install
-    startCommand: cd backend && npm start
+    startCommand: cd backend && PORT=$PORT npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000
+        fromService:
+          type: web
+          name: dentists-assistant-backend
+          envVarKey: RENDER_PORT
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET

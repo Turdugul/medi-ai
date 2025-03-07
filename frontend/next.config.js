@@ -21,6 +21,12 @@ const nextConfig = {
   experimental: {
     outputFileTracingRoot: undefined,
   },
+  serverRuntimeConfig: {
+    PORT: process.env.PORT || 3001
+  },
+  env: {
+    PORT: process.env.PORT || 3001
+  }
 };
 
 module.exports = nextConfig; 
