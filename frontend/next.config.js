@@ -18,6 +18,9 @@ const nextConfig = {
   },
   output: 'standalone',
   poweredByHeader: false,
+  experimental: {
+    outputFileTracingRoot: undefined,
+  },
 };
 
 module.exports = nextConfig; 
