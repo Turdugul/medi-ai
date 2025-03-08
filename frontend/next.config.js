@@ -3,60 +3,90 @@ const nextConfig = {
   reactStrictMode: false,
   output: 'standalone',
   poweredByHeader: false,
-  generateEtags: false,
+  generateEtags: true,
   distDir: '.next',
-  // Configure static file serving
-  basePath: '',
-  assetPrefix: process.env.NODE_ENV === 'production' ? undefined : '',
-  // Server configuration
-  serverRuntimeConfig: {
-    hostname: '0.0.0.0',
-    port: parseInt(process.env.PORT || '10000', 10),
+  compress: true,
+  experimental: {
+    optimizeCss: true,
   },
-  publicRuntimeConfig: {
-    frontendUrl: process.env.FRONTEND_URL,
-    apiUrl: process.env.NEXT_PUBLIC_API_URL,
-  },
-  // Development configuration
-  webpackDevMiddleware: config => {
-    config.watchOptions = {
-      poll: 1000,
-      aggregateTimeout: 300,
-    }
-    return config
-  },
-  // CORS headers
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT' },
-          { key: 'Access-Control-Allow-Headers', value: 'X-Requested-With, Content-Type, Authorization' },
-        ],
-      },
-      {
-        source: '/_next/static/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
-    ];
-  },
-  // Configure webpack for standalone build
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
+  webpack: (config, { dev, isServer }) => {
+    // Optimize production builds
+    if (!dev && !isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        minSize: 20000,
+        maxSize: 244000,
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          framework: {
+            chunks: 'all',
+            name: 'framework',
+            test: /(?<!node_modules.*)[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-subscription)[\\/]/,
+            priority: 40,
+            enforce: true,
+          },
+          lib: {
+            test(module) {
+              return module.size() > 160000 &&
+                /node_modules[/\\]/.test(module.identifier());
+            },
+            name(module) {
+              const hash = crypto.createHash('sha1');
+              hash.update(module.identifier());
+              return hash.digest('hex').substring(0, 8);
+            },
+            priority: 30,
+            minChunks: 1,
+            reuseExistingChunk: true,
+          },
+          commons: {
+            name: 'commons',
+            minChunks: 2,
+            priority: 20,
+          },
+          shared: {
+            name(module, chunks) {
+              return crypto
+                .createHash('sha1')
+                .update(chunks.reduce((acc, chunk) => acc + chunk.name, ''))
+                .digest('hex') + (module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)?.[1]?.replace('@', '').replace(/[\\/]/g, '_') || '');
+            },
+            priority: 10,
+            minChunks: 2,
+            reuseExistingChunk: true,
+          },
+        },
       };
+
+      // Add production optimizations
+      config.optimization.moduleIds = 'deterministic';
+      config.optimization.minimize = true;
     }
     return config;
   },
-  // Configure static generation
-  experimental: {
-    optimizeCss: false,
+  // Ensure static files are served correctly
+  async headers() {
+    return [
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
   },
 };
 

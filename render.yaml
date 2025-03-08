@@ -8,133 +8,85 @@ services:
       echo "Node version: $(node -v)"
       echo "NPM version: $(npm -v)"
       echo "Current directory: $(pwd)"
-      echo "Directory contents:"
-      ls -la
       
       echo "=== Starting build process ==="
-      echo "Installing dependencies..."
       npm install
-      echo "=== NPM Install completed ==="
-      echo "Package versions installed:"
-      npm list next react react-dom
-      
-      echo "=== Starting Next.js build ==="
       npm run build
-      echo "=== Next.js build completed ==="
       
-      echo "=== Debug: Initial .next directory structure ==="
-      echo "Root .next directory:"
+      echo "=== Debug: Build Output Structure ==="
+      echo "Checking .next directory..."
       ls -la .next/
-      echo "Static directory:"
-      ls -la .next/static || echo "No static directory found"
-      echo "Server directory:"
-      ls -la .next/server || echo "No server directory found"
-      echo "Build files:"
-      ls -la .next/*.json || echo "No JSON files found"
       
-      # Clean and prepare directories
-      echo "=== Cleaning and preparing directories ==="
-      echo "Removing cache..."
-      rm -rf .next/cache
-      echo "Creating directory structure..."
-      mkdir -p .next/standalone/.next/cache/
-      mkdir -p .next/standalone/.next/server
+      echo "=== Preparing Standalone Build ==="
+      # First, ensure clean state
+      rm -rf .next/standalone
+      rm -rf .next/static
+      
+      # Create all required directories
       mkdir -p .next/standalone/.next/static
+      mkdir -p .next/standalone/.next/server
       mkdir -p .next/standalone/public
       
-      echo "=== Debug: Checking standalone directory creation ==="
-      echo "Standalone directory structure:"
-      find .next/standalone -type d
-      
-      # Copy standalone files first
-      echo "=== Copying standalone files ==="
-      echo "Initial standalone contents:"
-      ls -la .next/standalone/ || echo "Empty standalone directory"
+      echo "=== Copying Build Files ==="
+      # 1. Copy the standalone server first
       cp -r .next/standalone/* .next/standalone/
-      echo "After copying standalone files:"
-      ls -la .next/standalone/
       
-      echo "=== Debug: Checking .next directory contents before copying ==="
-      echo "Full .next directory tree:"
-      find .next -type f
+      # 2. Copy all static files and chunks
+      echo "Copying static files and chunks..."
+      cp -r .next/static/* .next/standalone/.next/static/
       
-      # Copy all required Next.js files
-      echo "=== Copying Next.js files ==="
-      echo "Copying static files..."
-      if [ -d ".next/static" ]; then
-        cp -rv .next/static .next/standalone/.next/
-      else
-        echo "ERROR: Static directory not found!"
-        find .next -name "static"
-      fi
-      
+      # 3. Copy server files
       echo "Copying server files..."
-      if [ -d ".next/server" ]; then
-        cp -rv .next/server .next/standalone/.next/
-      else
-        echo "ERROR: Server directory not found!"
-        find .next -name "server"
-      fi
+      cp -r .next/server/* .next/standalone/.next/server/
       
-      echo "=== Copying manifest files ==="
-      for file in build-manifest.json prerender-manifest.json routes-manifest.json required-server-files.json; do
-        if [ -f ".next/$file" ]; then
-          cp -v ".next/$file" ".next/standalone/.next/" || echo "Warning: $file copy failed"
-        else
-          echo "ERROR: $file not found!"
-        fi
-      done
+      # 4. Copy all required manifests
+      echo "Copying manifest files..."
+      cp .next/build-manifest.json .next/standalone/.next/
+      cp .next/prerender-manifest.json .next/standalone/.next/
+      cp .next/routes-manifest.json .next/standalone/.next/
+      cp .next/required-server-files.json .next/standalone/.next/
+      cp .next/server/pages-manifest.json .next/standalone/.next/server/
+      cp .next/app-build-manifest.json .next/standalone/.next/ || true
       
-      # Copy public directory
-      echo "=== Copying public directory ==="
-      if [ -d "public" ]; then
-        echo "Public directory contents:"
-        ls -la public/
-        cp -rv public/* .next/standalone/public/ || echo "Warning: public directory copy failed"
-      else
-        echo "WARNING: No public directory found"
-      fi
+      # 5. Copy public files
+      echo "Copying public files..."
+      cp -r public/* .next/standalone/public/
       
-      # Ensure runtime files are present
-      echo "=== Copying runtime files ==="
-      cp -v package.json .next/standalone/
+      # 6. Ensure package.json is present
+      cp package.json .next/standalone/
       
-      echo "=== Debug: Final directory structure ==="
-      echo "Complete directory tree:"
-      find .next/standalone -type f
-      echo "File permissions in standalone:"
-      ls -laR .next/standalone/
-      echo "Static files check:"
-      find .next/standalone -name "static" -type d -exec ls -la {} \;
-      echo "Manifest files check:"
-      find .next/standalone -name "*.json" -type f -exec ls -la {} \;
+      echo "=== Verifying Critical Files ==="
+      echo "1. Checking static files..."
+      ls -la .next/standalone/.next/static/
       
-      echo "=== Verifying critical files ==="
-      critical_files=(
-        ".next/standalone/server.js"
-        ".next/standalone/.next/build-manifest.json"
-        ".next/standalone/.next/routes-manifest.json"
-        ".next/standalone/.next/static"
-      )
-      for file in "${critical_files[@]}"; do
-        if [ -e "$file" ]; then
-          echo "✓ $file exists"
-        else
-          echo "✗ $file is missing!"
-        fi
-      done
+      echo "2. Checking chunks..."
+      ls -la .next/standalone/.next/static/chunks/ || echo "No chunks directory!"
+      
+      echo "3. Checking manifest files..."
+      ls -la .next/standalone/.next/*.json
+      
+      echo "4. Checking server files..."
+      ls -la .next/standalone/.next/server/
+      
+      echo "=== Final Structure ==="
+      echo "Complete standalone directory tree:"
+      find .next/standalone -type f | grep -v "node_modules"
+      
+      echo "=== Verifying File Permissions ==="
+      chmod -R 755 .next/standalone/.next/static
+      chmod -R 755 .next/standalone/public
       
       echo "=== Build process completed ==="
     startCommand: |
       cd frontend/.next/standalone
       echo "=== Server Startup Debug ==="
-      echo "Current working directory: $(pwd)"
-      echo "Directory structure:"
-      find . -type f
-      echo "Environment variables:"
-      env | grep -E 'NODE_ENV|PORT|HOSTNAME|FRONTEND_URL|NEXT_PUBLIC'
-      echo "Static files location:"
-      find . -name "static" -type d -exec ls -la {} \;
+      echo "1. Current directory: $(pwd)"
+      echo "2. Static files:"
+      ls -la .next/static/
+      echo "3. Manifest files:"
+      ls -la .next/*.json
+      echo "4. Server files:"
+      ls -la .next/server/
       echo "=== Starting server ==="
       NODE_ENV=production HOSTNAME=0.0.0.0 PORT=10000 node server.js
     envVars:
