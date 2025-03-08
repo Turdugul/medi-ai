@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5001";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://dentists-assistant-ai-backend.onrender.com';
 
 export const uploadAudio = async (file, token, userId, patientId, title) => {
   try {
@@ -31,8 +31,9 @@ export const fetchAudioRecords = async (token) => {
         'Authorization': `Bearer ${token}`,
       }
     });
-    return response.data.data;
+    return response.data;
   } catch (error) {
+    console.error('Error fetching audio records:', error);
     throw error;
   }
 };
