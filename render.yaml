@@ -6,14 +6,17 @@ services:
       cd frontend
       npm install
       npm run build
+      mkdir -p .next/standalone/.next
+      # Copy the entire .next directory
+      cp -r .next/* .next/standalone/.next/
+      # Copy standalone files
+      cp -r .next/standalone/* .next/standalone/
+      # Ensure static files are in place
       mkdir -p .next/standalone/.next/static
       cp -r .next/static/* .next/standalone/.next/static/
-      cp -r .next/standalone/* .next/standalone/
-      cp -r .next/static .next/standalone/
-      cp .next/_buildManifest.js .next/standalone/.next/
-      cp .next/_ssgManifest.js .next/standalone/.next/
+      # Copy public directory
       cp -r public .next/standalone/
-    startCommand: cd frontend && PORT=$PORT node .next/standalone/server.js
+    startCommand: cd frontend/.next/standalone && NODE_ENV=production node server.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -45,4 +48,4 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-    autoDeploy: true 
+    autoDeploy: true

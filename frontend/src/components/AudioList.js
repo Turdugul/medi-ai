@@ -1,61 +1,17 @@
 // AudioList.js
-import React, { useState, useEffect, useContext, useCallback, memo, useMemo } from "react";
+import React, { useState, useEffect, useContext, useCallback, useMemo } from "react";
 import AuthContext from "@/context/AuthContext";
 import { fetchAudioRecords, fetchAudioRecordById, deleteAudioRecord, updateAudioRecord, downloadAudioFile } from "@/pages/api/audio";
-import { FaSearch, FaUserAlt, FaCalendar, FaExternalLinkAlt, FaDownload, FaTimes, FaEllipsisV, FaEdit, FaTrash, FaSpinner } from "react-icons/fa";
+import { FaSpinner } from "react-icons/fa";
 import Modal from "./Modal";
-import { LoadingContent, FormContent } from "./ModalContents";
-import SearchInput from "./common/SearchInput";
-import { TableHeader, TableRow, RowActionsMenu } from "./common/Table";
-import Pagination from "./common/Pagination";
+import { LoadingContent } from "./ModalContents";
 import { showToast } from "./Toast";
 
-
-const TABLE_COLUMNS = [
-  { key: 'createdDate', label: 'Date', align: 'left' },
-  { key: 'createdTime', label: 'Time', align: 'left' },
-  { key: 'patientId', label: 'Patient ID', align: 'left' },
-  { key: 'title', label: 'Title', align: 'left' },
-  { key: '_id', label: 'Record ID', align: 'left' },
-  { key: 'actions', label: 'Actions', align: 'right', width: '40' }
-];
-
-// Memoize the record details component
-const RecordDetails = memo(({ record }) => (
-  <div className="animate-scale space-y-3">
-    {/* Title and Patient ID */}
-    <div className="space-y-1">
-      <h2 className="text-xl font-bold text-gray-800">{record.title}</h2>
-      <div className="flex items-center gap-2 text-gray-600">
-        <FaUserAlt className="w-3.5 h-3.5" />
-        <span className="text-sm">Patient ID: {record.patientId}</span>
-      </div>
-    </div>
-
-    {/* Info Cards */}
-    <div className="grid grid-cols-2 gap-2">
-      <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
-        <div className="flex items-center gap-1.5 text-gray-600">
-          <FaCalendar className="w-3.5 h-3.5" />
-          <span className="text-sm">{record.createdDate}</span>
-        </div>
-      </div>
-      <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
-        <div className="flex items-center gap-1.5 text-gray-600">
-          <FaCalendar className="w-3.5 h-3.5" />
-          <span className="text-sm">{record.createdTime}</span>
-        </div>
-      </div>
-    </div>
-
-    {/* Report */}
-    <div className="bg-gray-50 rounded-lg border border-gray-200">
-      <pre className="p-3 whitespace-pre-wrap font-mono text-gray-700 text-sm max-h-[400px] overflow-auto">
-        {record.formattedReport}
-      </pre>
-    </div>
-  </div>
-));
+// Import components
+import RecordDetails from './audio/RecordDetails';
+import RecordActions from './audio/RecordActions';
+import AudioListHeader from './audio/AudioListHeader';
+import AudioListTable from './audio/AudioListTable';
 
 const AudioList = () => {
   const { token } = useContext(AuthContext);
@@ -64,40 +20,60 @@ const AudioList = () => {
   const [editingRecord, setEditingRecord] = useState(null);
   const [deletingRecord, setDeletingRecord] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchId, setSearchId] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [error, setError] = useState(null);
+  const [isMounted, setIsMounted] = useState(false);
   const recordsPerPage = 10;
+
+  // Handle client-side mounting
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Load audio records
   const loadAudioRecords = useCallback(async () => {
-    if (!token) return;
+    if (!token) {
+      setAudioRecords([]);
+      setIsLoading(false);
+      return;
+    }
+    
     setIsLoading(true);
+    setError(null);
     try {
-      const records = await fetchAudioRecords(token);
-      setAudioRecords(records);
+      const response = await fetchAudioRecords(token);
+      const records = response?.data || [];
+      setAudioRecords(Array.isArray(records) ? records : []);
     } catch (error) {
       console.error("Failed to load records:", error);
+      setError(error.message || "Failed to load records");
+      setAudioRecords([]);
     } finally {
       setIsLoading(false);
     }
   }, [token]);
 
   useEffect(() => {
-    loadAudioRecords();
-  }, [loadAudioRecords]);
+    if (isMounted && token) {
+      loadAudioRecords();
+    }
+  }, [loadAudioRecords, isMounted, token]);
 
   // Memoize handlers
   const handleViewDetails = useCallback(async (recordId) => {
     if (!token) return;
     setIsLoading(true);
     try {
-      const record = await fetchAudioRecordById(recordId, token);
+      const response = await fetchAudioRecordById(recordId, token);
+      const record = response?.data || null;
       setSelectedRecord(record);
       setIsModalOpen(true);
     } catch (error) {
       console.error("Failed to fetch record:", error);
+      showToast("error", "Failed to fetch record details");
     } finally {
       setIsLoading(false);
     }
@@ -109,13 +85,18 @@ const AudioList = () => {
   }, []);
 
   const handleDeleteRecord = useCallback(async (recordId) => {
+    if (!token || !recordId) return;
     setIsLoading(true);
     try {
       await deleteAudioRecord(recordId, token);
-      setAudioRecords(prev => prev.filter(r => r._id !== recordId));
+      setAudioRecords(prev => {
+        if (!Array.isArray(prev)) return [];
+        return prev.filter(r => r?._id !== recordId);
+      });
       setDeletingRecord(null);
       showToast("success", "Record deleted successfully");
     } catch (error) {
+      console.error("Delete error:", error);
       showToast("error", error.message || "Failed to delete record. Please try again.");
     } finally {
       setIsLoading(false);
@@ -123,34 +104,62 @@ const AudioList = () => {
   }, [token]);
 
   const handleUpdateRecord = useCallback(async (updatedData) => {
+    if (!token || !editingRecord?._id) return;
     try {
       const response = await updateAudioRecord(editingRecord._id, token, updatedData);
-      setAudioRecords(prev => 
-        prev.map(record => 
-          record._id === editingRecord._id ? { ...record, ...updatedData } : record
-        )
-      );
-      setEditingRecord(null);
-      showToast("success", "Record updated successfully");
+      const updatedRecord = response?.data || null;
+      
+      if (updatedRecord) {
+        setAudioRecords(prev => {
+          if (!Array.isArray(prev)) return [];
+          return prev.map(record => 
+            record?._id === editingRecord._id 
+              ? { ...record, ...updatedData }
+              : record
+          );
+        });
+        setEditingRecord(null);
+        showToast("success", "Record updated successfully");
+      } else {
+        throw new Error("Failed to update record");
+      }
     } catch (error) {
+      console.error("Update error:", error);
       showToast("error", error.message || "Failed to update record. Please try again.");
     }
   }, [editingRecord, token]);
 
   // Memoize filtered records with pagination
   const { paginatedRecords, totalPages } = useMemo(() => {
-    const sortedRecords = [...audioRecords].sort((a, b) => {
-      const dateA = new Date(`${a.createdDate} ${a.createdTime}`);
-      const dateB = new Date(`${b.createdDate} ${b.createdTime}`);
-      return dateB - dateA;
-    });
-    
-    const filtered = sortedRecords.filter((record) => record._id.includes(searchId));
-    const total = Math.ceil(filtered.length / recordsPerPage);
-    const start = (currentPage - 1) * recordsPerPage;
-    const paginated = filtered.slice(start, start + recordsPerPage);
-    return { paginatedRecords: paginated, totalPages: total };
-  }, [audioRecords, searchId, currentPage]);
+    if (!Array.isArray(audioRecords) || audioRecords.length === 0) {
+      return { paginatedRecords: [], totalPages: 0 };
+    }
+
+    try {
+      const sortedRecords = [...audioRecords].sort((a, b) => {
+        if (!a?.createdDate || !b?.createdDate) return 0;
+        const dateA = new Date(`${a.createdDate} ${a.createdTime || ''}`);
+        const dateB = new Date(`${b.createdDate} ${b.createdTime || ''}`);
+        return dateB - dateA;
+      });
+      
+      const filtered = sortedRecords.filter((record) => 
+        record?._id?.toString().toLowerCase().includes((searchId || '').toLowerCase())
+      );
+      
+      const total = Math.ceil(filtered.length / recordsPerPage);
+      const start = (currentPage - 1) * recordsPerPage;
+      const paginated = filtered.slice(start, start + recordsPerPage);
+      
+      return { 
+        paginatedRecords: paginated, 
+        totalPages: Math.max(1, total)
+      };
+    } catch (error) {
+      console.error('Error in pagination calculation:', error);
+      return { paginatedRecords: [], totalPages: 0 };
+    }
+  }, [audioRecords, searchId, currentPage, recordsPerPage]);
 
   // Row actions configuration
   const getRowActions = useCallback((record) => [
@@ -175,140 +184,160 @@ const AudioList = () => {
 
   // Render row actions
   const renderRowActions = useCallback((record) => (
-    <div className="flex items-center justify-end gap-2 relative">
-      <button
-        onClick={() => handleViewDetails(record._id)}
-        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200"
-        aria-label="View details"
-      >
-        <FaExternalLinkAlt className="w-4 h-4" />
-      </button>
-      <button
-        onClick={() => downloadAudioFile(record._id, token, record.filename)}
-        className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all duration-200"
-        aria-label="Download audio"
-      >
-        <FaDownload className="w-4 h-4" />
-      </button>
-      <div className="relative">
-        <button
-          onClick={() => setOpenMenuId(openMenuId === record._id ? null : record._id)}
-          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200"
-          aria-label="More actions"
-          aria-expanded={openMenuId === record._id}
-          aria-haspopup="true"
-        >
-          <FaEllipsisV className="w-4 h-4" />
-        </button>
-        {openMenuId === record._id && (
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 z-50">
-            <RowActionsMenu
-              isOpen={true}
-              onClose={() => setOpenMenuId(null)}
-              actions={getRowActions(record)}
-            />
-          </div>
-        )}
-      </div>
-    </div>
+    <RecordActions
+      record={record}
+      token={token}
+      openMenuId={openMenuId}
+      onViewDetails={handleViewDetails}
+      onDownload={downloadAudioFile}
+      onMenuToggle={(id) => setOpenMenuId(openMenuId === id ? null : id)}
+      onMenuClose={() => setOpenMenuId(null)}
+      getRowActions={getRowActions}
+    />
   ), [openMenuId, token, handleViewDetails, getRowActions]);
 
-  return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
-      {/* Title Section */}
-      <div className="text-center space-y-2">
-        <h1 className="text-4xl font-bold text-gray-800 tracking-tight">
-          Audio Record List
-        </h1>
-        <p className="text-gray-600">
-          Manage and view all your audio records
-        </p>
-      </div>
-
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <SearchInput
-          icon={FaSearch}
-          value={searchId}
-          onChange={(e) => setSearchId(e.target.value)}
-          placeholder="Search by Record ID"
-          onClear={() => setSearchId("")}
+  // Only render content after component is mounted
+  if (!isMounted) {
+    return (
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        <AudioListHeader
+          searchId=""
+          onSearchChange={() => {}}
+          onSearchClear={() => {}}
+          totalRecords={0}
         />
-        <div className="bg-white px-4 py-2 rounded-lg shadow-sm border">
-          <div className="flex items-center gap-2">
-            <FaUserAlt className="text-blue-500" />
-            <span className="text-gray-700">
-              Total Records: <span className="font-semibold text-blue-600">{audioRecords.length}</span>
-            </span>
-          </div>
+        <p className="text-gray-600 text-center">Loading...</p>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        <AudioListHeader
+          searchId={searchId}
+          onSearchChange={() => {}}
+          onSearchClear={() => {}}
+          totalRecords={0}
+        />
+        <div className="flex items-center justify-center gap-2">
+          <FaSpinner className="w-5 h-5 animate-spin text-blue-500" />
+          <span className="text-gray-600">Loading records...</span>
         </div>
       </div>
+    );
+  }
 
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <table className="w-full">
-          <TableHeader columns={TABLE_COLUMNS} />
-          <tbody>
-            {paginatedRecords.map((record) => (
-              <TableRow
-                key={record._id}
-                data={record}
-                columns={TABLE_COLUMNS.slice(0, -1)}
-                actions={renderRowActions(record)}
-              />
-            ))}
-          </tbody>
-        </table>
-        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+  // Error state
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        <AudioListHeader
+          searchId={searchId}
+          onSearchChange={() => {}}
+          onSearchClear={() => {}}
+          totalRecords={0}
+        />
+        <div className="text-center space-y-2">
+          <div className="text-red-500 text-lg font-semibold">Error loading records</div>
+          <div className="text-gray-600">{error}</div>
+          <button
+            onClick={loadAudioRecords}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
+    );
+  }
+
+  // Main content
+  return (
+    <div className="container mx-auto px-4 py-8 space-y-8">
+      <AudioListHeader
+        searchId={searchId}
+        onSearchChange={(e) => setSearchId(e.target.value)}
+        onSearchClear={() => setSearchId("")}
+        totalRecords={audioRecords?.length || 0}
+      />
+
+      {!audioRecords || audioRecords.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
+          <p className="text-gray-600">No audio records found</p>
+        </div>
+      ) : (
+        <AudioListTable
+          paginatedRecords={paginatedRecords}
+          totalPages={totalPages}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          renderRowActions={renderRowActions}
+        />
+      )}
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         {isLoading ? <LoadingContent /> : selectedRecord && <RecordDetails record={selectedRecord} />}
       </Modal>
 
       {/* Edit Modal */}
-      <Modal 
-        isOpen={!!editingRecord} 
-        onClose={() => setEditingRecord(null)}
-        className="z-50 relative"
-      >
-        {editingRecord && (
-          <FormContent
-            title="Edit Record"
-            primaryAction={() => handleUpdateRecord({
-              title: editingRecord.title,
-              patientId: editingRecord.patientId
-            })}
-            secondaryAction={() => setEditingRecord(null)}
-            primaryLabel="Save Changes"
-            secondaryLabel="Cancel"
-          >
-            {['title', 'patientId'].map(field => (
-              <div key={field} className="space-y-4">
-                <label htmlFor={field} className="block text-sm font-medium text-gray-700">
-                  {field === 'title' ? 'Title' : 'Patient ID'}
-                </label>
-                <input
-                  type="text"
-                  id={field}
-                  value={editingRecord[field]}
-                  onChange={(e) => setEditingRecord(prev => ({ ...prev, [field]: e.target.value }))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder={`Enter ${field === 'title' ? 'new title' : 'patient ID'}`}
-                />
-              </div>
-            ))}
-          </FormContent>
-        )}
-      </Modal>
-
-      {/* Delete Confirmation - Inline */}
-      {deletingRecord && (
-        <div className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-xl p-4 max-w-md w-full mx-4 animate-scale">
-            <div className="flex items-center gap-3 text-red-600 mb-3">
-              <FaTrash className="w-5 h-5" />
-              <h3 className="text-lg font-semibold">Delete Record</h3>
+      {editingRecord && (
+        <Modal 
+          isOpen={true} 
+          onClose={() => setEditingRecord(null)}
+          className="z-50 relative"
+        >
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-gray-800">Edit Record</h2>
+            <div className="space-y-4">
+              {['title', 'patientId'].map(field => (
+                <div key={field} className="space-y-2">
+                  <label htmlFor={field} className="block text-sm font-medium text-gray-700">
+                    {field === 'title' ? 'Title' : 'Patient ID'}
+                  </label>
+                  <input
+                    type="text"
+                    id={field}
+                    value={editingRecord[field]}
+                    onChange={(e) => setEditingRecord(prev => ({ ...prev, [field]: e.target.value }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder={`Enter ${field === 'title' ? 'new title' : 'patient ID'}`}
+                  />
+                </div>
+              ))}
             </div>
-            <p className="text-gray-600 mb-4">
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => setEditingRecord(null)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleUpdateRecord({
+                  title: editingRecord.title,
+                  patientId: editingRecord.patientId
+                })}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingRecord && (
+        <Modal
+          isOpen={true}
+          onClose={() => setDeletingRecord(null)}
+          className="z-50 relative"
+        >
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-red-600">Delete Record</h2>
+            <p className="text-gray-600">
               Are you sure you want to delete "{deletingRecord.title}"? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-2">
@@ -334,10 +363,10 @@ const AudioList = () => {
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
 };
 
-export default memo(AudioList);
+export default AudioList;
