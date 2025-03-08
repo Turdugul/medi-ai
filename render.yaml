@@ -6,22 +6,25 @@ services:
       cd frontend
       npm install
       npm run build
-      # Create necessary directories
+      # Prepare directories
+      rm -rf .next/standalone/.next
       mkdir -p .next/standalone/.next
-      # Copy the entire .next directory content
-      cp -r .next/* .next/standalone/.next/
-      # Copy standalone files
+      # Copy the standalone output
       cp -r .next/standalone/* .next/standalone/
-      # Copy static files
+      # Copy the .next directory
+      cp -r .next/* .next/standalone/.next/
+      # Ensure static files are in place
+      mkdir -p .next/standalone/.next/static
+      cp -r .next/static/* .next/standalone/.next/static/
+      # Copy public directory
       mkdir -p .next/standalone/public
       cp -r public/* .next/standalone/public/
       # Copy required server files
-      cp -r .next/static* .next/standalone/.next/
       cp .next/BUILD_ID .next/standalone/.next/
       cp .next/build-manifest.json .next/standalone/.next/
       cp .next/prerender-manifest.json .next/standalone/.next/
       cp .next/routes-manifest.json .next/standalone/.next/
-      cp .next/server/pages-manifest.json .next/standalone/.next/server/
+      # Ensure package.json is present
       cp package.json .next/standalone/
     startCommand: |
       cd frontend/.next/standalone

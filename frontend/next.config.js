@@ -7,7 +7,7 @@ const nextConfig = {
   distDir: '.next',
   // Configure static file serving
   basePath: '',
-  assetPrefix: '',
+  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://dentists-assistant-ai-frontend.onrender.com' : '',
   // Server configuration
   serverRuntimeConfig: {
     hostname: '0.0.0.0',
