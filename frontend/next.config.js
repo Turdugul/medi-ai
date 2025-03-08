@@ -4,8 +4,20 @@ const nextConfig = {
   output: 'standalone',
   poweredByHeader: false,
   distDir: '.next',
+  generateEtags: false,
   generateBuildId: async () => {
     return 'build-' + Date.now()
+  },
+  // Configure static file serving
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: '/_next/static/:path*',
+          destination: '/.next/static/:path*'
+        }
+      ]
+    }
   },
   async headers() {
     return [
@@ -17,6 +29,12 @@ const nextConfig = {
           { key: 'Access-Control-Allow-Headers', value: 'X-Requested-With, Content-Type, Authorization' },
         ],
       },
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
+        ]
+      }
     ];
   },
   // Server configuration
