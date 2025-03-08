@@ -23,14 +23,14 @@ const nextConfig = {
   },
   // Server configuration
   serverRuntimeConfig: {
-    hostname: process.env.HOSTNAME || '0.0.0.0',
-    port: parseInt(process.env.PORT || '5000', 10)
+    // Will only be available on the server side
+    hostname: '0.0.0.0',
+    port: parseInt(process.env.PORT || '3000', 10)
   },
   // Environment variables that will be shared across server and client
   publicRuntimeConfig: {
     frontendUrl: process.env.FRONTEND_URL,
-    apiUrl: process.env.NEXT_PUBLIC_API_URL,
-    port: parseInt(process.env.PORT || '5000', 10)
+    apiUrl: process.env.NEXT_PUBLIC_API_URL
   },
   // CORS headers
   async headers() {

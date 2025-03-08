@@ -13,14 +13,14 @@ services:
       cp .next/_buildManifest.js .next/standalone/.next/
       cp .next/_ssgManifest.js .next/standalone/.next/
       cp -r public .next/standalone/
-    startCommand: cd frontend/.next/standalone && NODE_ENV=production HOSTNAME=0.0.0.0 PORT=5000 node server.js
+    startCommand: cd frontend && PORT=$PORT node .next/standalone/server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: HOSTNAME
         value: 0.0.0.0
       - key: PORT
-        value: 5000
+        sync: true
       - key: NEXT_PUBLIC_API_URL
         value: https://dentists-assistant-ai-backend.onrender.com
       - key: FRONTEND_URL
@@ -31,12 +31,12 @@ services:
     name: dentists-assistant-backend
     env: node
     buildCommand: cd backend && npm install
-    startCommand: cd backend && PORT=5000 node index.js
+    startCommand: cd backend && PORT=$PORT node index.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5000
+        sync: true
       - key: FRONTEND_URL
         value: https://dentists-assistant-ai-frontend.onrender.com
       - key: MONGODB_URI
