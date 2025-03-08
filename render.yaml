@@ -6,24 +6,28 @@ services:
       cd frontend
       npm install
       npm run build
-      mkdir -p .next/standalone/.next
-      # Copy the entire .next directory
-      cp -r .next/* .next/standalone/.next/
-      # Copy standalone files
-      cp -r .next/standalone/* .next/standalone/
-      # Ensure static files are in place
+      # Create necessary directories
       mkdir -p .next/standalone/.next/static
+      mkdir -p .next/standalone/public
+      # Copy the standalone server and its dependencies
+      cp -r .next/standalone/* .next/standalone/
+      # Copy the .next directory contents
       cp -r .next/static/* .next/standalone/.next/static/
-      # Copy public directory
-      cp -r public .next/standalone/
-    startCommand: cd frontend/.next/standalone && NODE_ENV=production node server.js
+      cp -r .next/server .next/standalone/.next/
+      cp -r .next/required-server-files.json .next/standalone/.next/
+      cp -r .next/build-manifest.json .next/standalone/.next/
+      cp -r .next/prerender-manifest.json .next/standalone/.next/
+      cp -r .next/routes-manifest.json .next/standalone/.next/
+      # Copy public assets
+      cp -r public/* .next/standalone/public/
+      # Ensure package.json is in the standalone directory
+      cp package.json .next/standalone/
+    startCommand: cd .next/standalone && HOSTNAME=0.0.0.0 node server.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: HOSTNAME
-        value: 0.0.0.0
       - key: PORT
-        sync: true
+        value: 10000
       - key: NEXT_PUBLIC_API_URL
         value: https://dentists-assistant-ai-backend.onrender.com
       - key: FRONTEND_URL
@@ -34,12 +38,12 @@ services:
     name: dentists-assistant-backend
     env: node
     buildCommand: cd backend && npm install
-    startCommand: cd backend && PORT=$PORT node index.js
+    startCommand: cd backend && node index.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        sync: true
+        value: 10000
       - key: FRONTEND_URL
         value: https://dentists-assistant-ai-frontend.onrender.com
       - key: MONGODB_URI

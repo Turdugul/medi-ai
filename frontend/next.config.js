@@ -7,11 +7,11 @@ const nextConfig = {
   distDir: '.next',
   // Configure static file serving
   basePath: '',
-  assetPrefix: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : '',
+  assetPrefix: process.env.NODE_ENV === 'production' ? '' : '',
   // Server configuration
   serverRuntimeConfig: {
     hostname: '0.0.0.0',
-    port: parseInt(process.env.PORT || '3000', 10),
+    port: parseInt(process.env.PORT || '10000', 10),
   },
   publicRuntimeConfig: {
     frontendUrl: process.env.FRONTEND_URL,
@@ -55,22 +55,13 @@ const nextConfig = {
     ];
   },
   // Configure webpack for standalone build
-  webpack: (config, { dev, isServer }) => {
+  webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
       };
     }
-    
-    // Add optimization for development
-    if (dev) {
-      config.watchOptions = {
-        poll: 1000,
-        aggregateTimeout: 300,
-      };
-    }
-    
     return config;
   },
   // Configure static generation
