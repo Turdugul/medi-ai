@@ -3,6 +3,11 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   poweredByHeader: false,
+  // Ensure static assets are copied
+  experimental: {
+    outputFileTracingRoot: process.env.NODE_ENV === 'production' ? './' : undefined,
+    outputStandalone: true,
+  },
   async headers() {
     return [
       {

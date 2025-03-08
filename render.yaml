@@ -2,8 +2,11 @@ services:
   - type: web
     name: dentists-assistant-frontend
     env: node
-    buildCommand: cd frontend && npm install && npm run build
-    startCommand: cd frontend && PORT=5000 HOSTNAME=0.0.0.0 node .next/standalone/server.js
+    buildCommand: |
+      cd frontend && npm install && npm run build
+      cp -r frontend/.next/static frontend/.next/standalone/.next/
+      cp -r frontend/public frontend/.next/standalone/
+    startCommand: cd frontend/.next/standalone && PORT=5000 HOSTNAME=0.0.0.0 node server.js
     envVars:
       - key: NODE_ENV
         value: production
