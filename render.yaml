@@ -7,22 +7,25 @@ services:
       npm install
       npm run build
       # Create necessary directories
-      mkdir -p .next/standalone/.next/static
-      mkdir -p .next/standalone/public
-      # Copy the standalone server and its dependencies
+      mkdir -p .next/standalone/.next
+      # Copy the entire .next directory content
+      cp -r .next/* .next/standalone/.next/
+      # Copy standalone files
       cp -r .next/standalone/* .next/standalone/
-      # Copy the .next directory contents
-      cp -r .next/static/* .next/standalone/.next/static/
-      cp -r .next/server .next/standalone/.next/
-      cp -r .next/required-server-files.json .next/standalone/.next/
-      cp -r .next/build-manifest.json .next/standalone/.next/
-      cp -r .next/prerender-manifest.json .next/standalone/.next/
-      cp -r .next/routes-manifest.json .next/standalone/.next/
-      # Copy public assets
+      # Copy static files
+      mkdir -p .next/standalone/public
       cp -r public/* .next/standalone/public/
-      # Ensure package.json is in the standalone directory
+      # Copy required server files
+      cp -r .next/static* .next/standalone/.next/
+      cp .next/BUILD_ID .next/standalone/.next/
+      cp .next/build-manifest.json .next/standalone/.next/
+      cp .next/prerender-manifest.json .next/standalone/.next/
+      cp .next/routes-manifest.json .next/standalone/.next/
+      cp .next/server/pages-manifest.json .next/standalone/.next/server/
       cp package.json .next/standalone/
-    startCommand: cd .next/standalone && HOSTNAME=0.0.0.0 node server.js
+    startCommand: |
+      cd frontend/.next/standalone
+      NODE_ENV=production HOSTNAME=0.0.0.0 node server.js
     envVars:
       - key: NODE_ENV
         value: production
