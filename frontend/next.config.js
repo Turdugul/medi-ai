@@ -7,7 +7,7 @@ const nextConfig = {
   distDir: '.next',
   // Configure static file serving
   basePath: '',
-  assetPrefix: '',
+  assetPrefix: process.env.NODE_ENV === 'production' ? undefined : '',
   // Server configuration
   serverRuntimeConfig: {
     hostname: '0.0.0.0',
