@@ -195,33 +195,42 @@
 .animate-modal-enter {
   animation: modalEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
-const cssAnimation = `
+
+/* Toast animations */
 @keyframes toast-enter {
-  from {
+  0% {
     transform: translateX(100%) scale(0.95);
     opacity: 0;
   }
-  to {
+  100% {
     transform: translateX(0) scale(1);
     opacity: 1;
   }
 }
 
 @keyframes toast-exit {
-  from {
+  0% {
     transform: translateX(0) scale(1);
     opacity: 1;
   }
-  to {
+  100% {
     transform: translateX(100%) scale(0.95);
     opacity: 0;
   }
 }
 
-.animate-toast-enter {
-  animation: toast-enter 0.2s ease-out forwards;
+/* Toast container styles */
+.toast-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
 }
 
-.Toastify__toast--exit {
-  animation: toast-exit 0.2s ease-in forwards !important;
+.toast {
+  animation: toast-enter 0.3s ease-out;
+}
+
+.toast-exit {
+  animation: toast-exit 0.3s ease-out forwards;
 }

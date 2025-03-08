@@ -13,87 +13,68 @@ services:
       npm install
       npm run build
       
-      echo "=== Debug: Build Output Structure ==="
-      echo "Checking .next directory..."
+      echo "=== Debug: Checking build output ==="
       ls -la .next/
       
-      echo "=== Preparing Standalone Build ==="
-      # First, ensure clean state
+      echo "=== Preparing standalone build ==="
+      # Clean up any existing standalone directory
       rm -rf .next/standalone
-      rm -rf .next/static
       
-      # Create all required directories
-      mkdir -p .next/standalone/.next/static
-      mkdir -p .next/standalone/.next/server
-      mkdir -p .next/standalone/public
+      echo "=== Copying standalone output ==="
+      # Copy the entire standalone output first
+      cp -r .next/standalone .next/standalone_temp
       
-      echo "=== Copying Build Files ==="
-      # 1. Copy the standalone server first
-      cp -r .next/standalone/* .next/standalone/
+      # Create fresh standalone directory
+      mkdir -p .next/standalone/.next
       
-      # 2. Copy all static files and chunks
-      echo "Copying static files and chunks..."
-      cp -r .next/static/* .next/standalone/.next/static/
+      # Copy server.js and other root files
+      cp .next/standalone_temp/* .next/standalone/ 2>/dev/null || true
       
-      # 3. Copy server files
-      echo "Copying server files..."
-      cp -r .next/server/* .next/standalone/.next/server/
+      # Copy the .next directory contents
+      cp -r .next/static .next/standalone/.next/
+      cp -r .next/server .next/standalone/.next/
+      cp -r .next/standalone_temp/.next/* .next/standalone/.next/ 2>/dev/null || true
       
-      # 4. Copy all required manifests
-      echo "Copying manifest files..."
-      cp .next/build-manifest.json .next/standalone/.next/
-      cp .next/prerender-manifest.json .next/standalone/.next/
-      cp .next/routes-manifest.json .next/standalone/.next/
-      cp .next/required-server-files.json .next/standalone/.next/
-      cp .next/server/pages-manifest.json .next/standalone/.next/server/
-      cp .next/app-build-manifest.json .next/standalone/.next/ || true
-      
-      # 5. Copy public files
-      echo "Copying public files..."
-      cp -r public/* .next/standalone/public/
-      
-      # 6. Ensure package.json is present
+      # Copy public directory and package.json
+      cp -r public .next/standalone/
       cp package.json .next/standalone/
       
-      echo "=== Verifying Critical Files ==="
-      echo "1. Checking static files..."
-      ls -la .next/standalone/.next/static/
+      # Clean up temp directory
+      rm -rf .next/standalone_temp
       
-      echo "2. Checking chunks..."
-      ls -la .next/standalone/.next/static/chunks/ || echo "No chunks directory!"
+      echo "=== Setting permissions ==="
+      chmod -R 755 .next/standalone
       
-      echo "3. Checking manifest files..."
-      ls -la .next/standalone/.next/*.json
+      echo "=== Verifying final structure ==="
+      echo "Root standalone directory:"
+      ls -la .next/standalone/
+      echo ".next directory:"
+      ls -la .next/standalone/.next/
+      echo "Checking for server.js:"
+      ls -la .next/standalone/server.js || echo "WARNING: server.js not found!"
       
-      echo "4. Checking server files..."
-      ls -la .next/standalone/.next/server/
-      
-      echo "=== Final Structure ==="
-      echo "Complete standalone directory tree:"
-      find .next/standalone -type f | grep -v "node_modules"
-      
-      echo "=== Verifying File Permissions ==="
-      chmod -R 755 .next/standalone/.next/static
-      chmod -R 755 .next/standalone/public
-      
-      echo "=== Build process completed ==="
+      echo "=== Build completed ==="
     startCommand: |
       cd frontend/.next/standalone
-      echo "=== Server Startup Debug ==="
-      echo "1. Current directory: $(pwd)"
-      echo "2. Static files:"
-      ls -la .next/static/
-      echo "3. Manifest files:"
-      ls -la .next/*.json
-      echo "4. Server files:"
-      ls -la .next/server/
-      echo "=== Starting server ==="
-      NODE_ENV=production HOSTNAME=0.0.0.0 PORT=10000 node server.js
+      echo "=== Server Environment Check ==="
+      echo "PORT: $PORT"
+      echo "NODE_ENV: $NODE_ENV"
+      echo "HOSTNAME: $HOSTNAME"
+      echo "Current directory: $(pwd)"
+      echo "Directory contents:"
+      ls -la
+      
+      # Ensure port is explicitly set in process
+      export PORT=10000
+      export HOSTNAME=0.0.0.0
+      
+      echo "=== Starting Next.js Server ==="
+      NODE_ENV=production node server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000
+        value: "10000"
       - key: NEXT_PUBLIC_API_URL
         value: https://dentists-assistant-ai-backend.onrender.com
       - key: FRONTEND_URL
@@ -109,7 +90,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000
+        value: "10000"
       - key: FRONTEND_URL
         value: https://dentists-assistant-ai-frontend.onrender.com
       - key: MONGODB_URI
