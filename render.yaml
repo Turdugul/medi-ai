@@ -6,29 +6,20 @@ services:
       cd frontend
       npm install
       npm run build
-      # Prepare directories
-      rm -rf .next/standalone/.next
+      # Create standalone directory structure
       mkdir -p .next/standalone/.next
-      # Copy the standalone output
-      cp -r .next/standalone/* .next/standalone/
-      # Copy the .next directory
-      cp -r .next/* .next/standalone/.next/
-      # Ensure static files are in place
-      mkdir -p .next/standalone/.next/static
-      cp -r .next/static/* .next/standalone/.next/static/
-      # Copy public directory
       mkdir -p .next/standalone/public
+      # Copy standalone server and dependencies
+      cp -r .next/standalone/* .next/standalone/
+      # Copy .next directory for static files
+      cp -r .next/* .next/standalone/.next/
+      # Copy public assets
       cp -r public/* .next/standalone/public/
-      # Copy required server files
-      cp .next/BUILD_ID .next/standalone/.next/
-      cp .next/build-manifest.json .next/standalone/.next/
-      cp .next/prerender-manifest.json .next/standalone/.next/
-      cp .next/routes-manifest.json .next/standalone/.next/
-      # Ensure package.json is present
+      # Copy package.json for runtime
       cp package.json .next/standalone/
     startCommand: |
       cd frontend/.next/standalone
-      NODE_ENV=production HOSTNAME=0.0.0.0 node server.js
+      NODE_ENV=production HOSTNAME=0.0.0.0 PORT=10000 node server.js
     envVars:
       - key: NODE_ENV
         value: production

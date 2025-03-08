@@ -7,7 +7,7 @@ const nextConfig = {
   distDir: '.next',
   // Configure static file serving
   basePath: '',
-  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://dentists-assistant-ai-frontend.onrender.com' : '',
+  assetPrefix: '',
   // Server configuration
   serverRuntimeConfig: {
     hostname: '0.0.0.0',
@@ -34,16 +34,6 @@ const nextConfig = {
           { key: 'Access-Control-Allow-Origin', value: '*' },
           { key: 'Access-Control-Allow-Methods', value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT' },
           { key: 'Access-Control-Allow-Headers', value: 'X-Requested-With, Content-Type, Authorization' },
-          { key: 'Access-Control-Allow-Credentials', value: 'true' },
-        ],
-      },
-      {
-        source: '/api/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT' },
-          { key: 'Access-Control-Allow-Headers', value: 'X-Requested-With, Content-Type, Authorization' },
-          { key: 'Access-Control-Allow-Credentials', value: 'true' },
         ],
       },
       {
