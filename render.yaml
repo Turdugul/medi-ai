@@ -6,9 +6,16 @@ services:
       cd frontend
       npm install
       npm run build
+      mkdir -p .next/standalone/.next
       cp -r .next/static .next/standalone/.next/
+      cp -r .next/server .next/standalone/.next/
+      cp .next/BUILD_ID .next/standalone/.next/
+      cp .next/build-manifest.json .next/standalone/.next/
+      cp .next/prerender-manifest.json .next/standalone/.next/
+      cp .next/routes-manifest.json .next/standalone/.next/
+      cp .next/required-server-files.json .next/standalone/.next/
       cp -r public .next/standalone/
-    startCommand: cd frontend/.next/standalone && node server.js
+    startCommand: cd frontend/.next/standalone && PORT=$PORT node server.js
     envVars:
       - key: NODE_ENV
         value: production

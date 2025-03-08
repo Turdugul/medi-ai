@@ -4,7 +4,9 @@ const nextConfig = {
   output: 'standalone',
   poweredByHeader: false,
   distDir: '.next',
-  outputFileTracingRoot: './',
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
+  },
   async headers() {
     return [
       {
