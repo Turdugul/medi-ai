@@ -6,7 +6,7 @@ const nextConfig = {
   trailingSlash: true,
   reactStrictMode: true,
   swcMinify: true,
-  output: 'standalone'
+  // output: 'standalone'
 }
 
 module.exports = nextConfig;
