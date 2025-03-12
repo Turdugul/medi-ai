@@ -29,9 +29,8 @@ services:
   # Frontend Static Site
   - type: static
     name: dentists-assistant-frontend
-    rootDir: frontend
-    buildCommand: npm ci && npm run build && npm run export
-    publishPath: out
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/out
     envVars:
       - key: NODE_ENV
         value: production
