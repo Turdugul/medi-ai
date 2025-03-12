@@ -30,7 +30,11 @@ services:
   - type: static
     name: dentists-assistant-frontend
     buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/out
+    publishPath: ./frontend/out
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: NODE_ENV
         value: production
