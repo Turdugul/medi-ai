@@ -2,13 +2,14 @@
   "name": "dentists-assistant-frontend",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "postbuild": "cp -r .next/static out/_next/static",
-    "start": "next start",
-    "lint": "next lint"
-  },
+ "scripts": {
+  "dev": "next dev",
+  "build": "next build",
+  "postbuild": "xcopy .next\\static out\\_next\\static /e /i",
+  "start": "next start",
+  "lint": "next lint"
+},
+
   "engines": {
     "node": ">=18.0.0"
   },
