@@ -11,7 +11,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-console.log("Frontend URL from ENV:", process.env.FRONTEND_URL);
+console.log("Frontend URL from ENV: ", process.env.FRONTEND_URL);
 console.log("API running on port:", PORT);
 
 // CORS configuration
