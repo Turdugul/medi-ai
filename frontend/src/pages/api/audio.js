@@ -31,7 +31,10 @@ export const fetchAudioRecords = async (token) => {
         'Authorization': `Bearer ${token}`,
       }
     });
-    return response.data;
+
+    // Ensure we have data and it's an array
+    const records = response?.data?.data || response?.data || [];
+    return { data: Array.isArray(records) ? records : [] };
   } catch (error) {
     console.error('Error fetching audio records:', error);
     throw error;
@@ -58,6 +61,7 @@ export const fetchAudioRecordById = async (recordId, token) => {
     throw error;
   }
 };
+
 
 
 // 📌 Get the download link for an audio file

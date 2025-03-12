@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useContext, useCallback, useMemo } from "react";
 import AuthContext from "@/context/AuthContext";
 import { fetchAudioRecords, fetchAudioRecordById, deleteAudioRecord, updateAudioRecord, downloadAudioFile } from "@/pages/api/audio";
-import { FaSpinner } from "react-icons/fa";
+import { FaSpinner, FaEdit, FaTrash } from "react-icons/fa";
 import Modal from "./Modal";
 import { LoadingContent } from "./ModalContents";
 import { showToast } from "./Toast";
@@ -14,7 +14,7 @@ import AudioListHeader from './audio/AudioListHeader';
 import AudioListTable from './audio/AudioListTable';
 
 const AudioList = () => {
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
   const [audioRecords, setAudioRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -35,7 +35,7 @@ const AudioList = () => {
 
   // Load audio records
   const loadAudioRecords = useCallback(async () => {
-    if (!token) {
+    if (!token || !user?._id) {
       setAudioRecords([]);
       setIsLoading(false);
       return;
@@ -46,7 +46,11 @@ const AudioList = () => {
     try {
       const response = await fetchAudioRecords(token);
       const records = response?.data || [];
-      setAudioRecords(Array.isArray(records) ? records : []);
+      // Filter records by current user's ID
+      const userRecords = Array.isArray(records) 
+        ? records.filter(record => record.userId === user._id)
+        : [];
+      setAudioRecords(userRecords);
     } catch (error) {
       console.error("Failed to load records:", error);
       setError(error.message || "Failed to load records");
@@ -54,7 +58,7 @@ const AudioList = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, user?._id]);
 
   useEffect(() => {
     if (isMounted && token) {
@@ -64,20 +68,100 @@ const AudioList = () => {
 
   // Memoize handlers
   const handleViewDetails = useCallback(async (recordId) => {
-    if (!token) return;
+    if (!token) {
+      console.log("❌ No token found.");
+      showToast("error", "Authentication required");
+      return;
+    }
+    
+    // Open modal first with loading state
+    setIsModalOpen(true);
     setIsLoading(true);
+    setSelectedRecord(null);
+    
     try {
+      console.log('📝 Fetching record:', recordId);
       const response = await fetchAudioRecordById(recordId, token);
-      const record = response?.data || null;
-      setSelectedRecord(record);
-      setIsModalOpen(true);
+      console.log('📝 API Response:', response);
+      
+      // Get record from response
+      const rawRecord = response.data || response;
+      
+      if (!rawRecord || Object.keys(rawRecord).length === 0) {
+        console.error('❌ Empty record data');
+        showToast("error", "Record not found");
+        setIsModalOpen(false);
+        return;
+      }
+
+      // Format the record data
+      const formattedRecord = {
+        ...rawRecord,
+        _id: rawRecord._id || rawRecord.id, // Handle both _id and id
+        formattedReport: formatReport(rawRecord),
+        createdDate: formatDate(rawRecord.createdAt || rawRecord.createdDate),
+        createdTime: formatTime(rawRecord.createdAt || rawRecord.createdTime),
+        title: rawRecord.title || 'Untitled Record',
+        patientId: rawRecord.patientId || 'No Patient ID',
+        status: rawRecord.status || 'Unknown',
+        audioUrl: rawRecord.audioUrl || rawRecord.url || null,
+        transcription: rawRecord.transcription || rawRecord.report || '',
+      };
+      
+      console.log('📝 Formatted record:', formattedRecord);
+      setSelectedRecord(formattedRecord);
+      
     } catch (error) {
-      console.error("Failed to fetch record:", error);
-      showToast("error", "Failed to fetch record details");
+      console.error("❌ Failed to fetch record:", error);
+      showToast("error", "Failed to load record details");
+      setIsModalOpen(false);
     } finally {
       setIsLoading(false);
     }
   }, [token]);
+
+  // Helper functions for formatting
+  const formatReport = useCallback((record) => {
+    // Try different possible fields for the report content
+    const reportContent = 
+      record.formattedReport || 
+      record.report || 
+      record.transcription || 
+      record.content;
+
+    if (!reportContent) return 'No report available';
+
+    try {
+      // If it's a JSON string, parse and format it
+      if (typeof reportContent === 'string' && (reportContent.startsWith('{') || reportContent.startsWith('['))) {
+        const parsed = JSON.parse(reportContent);
+        return JSON.stringify(parsed, null, 2);
+      }
+      return reportContent;
+    } catch (e) {
+      return reportContent;
+    }
+  }, []);
+
+  const formatDate = useCallback((dateValue) => {
+    if (!dateValue) return 'Date not available';
+    try {
+      const date = new Date(dateValue);
+      return date.toLocaleDateString();
+    } catch (e) {
+      return dateValue;
+    }
+  }, []);
+
+  const formatTime = useCallback((timeValue) => {
+    if (!timeValue) return 'Time not available';
+    try {
+      const date = new Date(timeValue);
+      return date.toLocaleTimeString();
+    } catch (e) {
+      return timeValue;
+    }
+  }, []);
 
   const handleEditRecord = useCallback((record) => {
     setEditingRecord(record);
@@ -188,7 +272,7 @@ const AudioList = () => {
       record={record}
       token={token}
       openMenuId={openMenuId}
-      onViewDetails={handleViewDetails}
+      onViewDetails={() => handleViewDetails(record._id)}
       onDownload={downloadAudioFile}
       onMenuToggle={(id) => setOpenMenuId(openMenuId === id ? null : id)}
       onMenuClose={() => setOpenMenuId(null)}
@@ -277,9 +361,33 @@ const AudioList = () => {
         />
       )}
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        {isLoading ? <LoadingContent /> : selectedRecord && <RecordDetails record={selectedRecord} />}
-      </Modal>
+      {/* View Details Modal */}
+      {isModalOpen && (
+        isLoading ? (
+          <div className="flex flex-col items-center justify-center p-6 space-y-3">
+            <FaSpinner className="w-8 h-8 animate-spin text-blue-500" />
+            <span className="text-gray-600">Loading record details...</span>
+          </div>
+        ) : selectedRecord ? (
+          <RecordDetails 
+            record={selectedRecord}
+            onClose={() => {
+              setIsModalOpen(false);
+              setSelectedRecord(null);
+            }}
+          />
+        ) : (
+          <div className="p-6 text-center text-gray-600">
+            <p className="text-lg font-medium">No record details available</p>
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="mt-4 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        )
+      )}
 
       {/* Edit Modal */}
       {editingRecord && (
@@ -348,7 +456,11 @@ const AudioList = () => {
                 Cancel
               </button>
               <button
-                onClick={() => handleDeleteRecord(deletingRecord._id)}
+                onClick={() => {
+                  if (deletingRecord?._id) {
+                    handleDeleteRecord(deletingRecord._id);
+                  }
+                }}
                 disabled={isLoading}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >

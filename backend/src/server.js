@@ -14,33 +14,15 @@ const PORT = process.env.PORT || 5000;
 console.log("Frontend URL from ENV:", process.env.FRONTEND_URL);
 console.log("API running on port:", PORT);
 
-const allowedOrigins = [
-  'http://localhost:3000',
-  process.env.FRONTEND_URL, 
-  'https://dentists-assistant-ai-frontend.onrender.com',
-];
-
+// CORS configuration
 const corsOptions = {
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      console.log(`CORS Blocked: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.CORS_ORIGIN
+    : 'http://localhost:3000',
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200
 };
 
-// Enable pre-flight requests for all routes
-app.options('*', cors(corsOptions));
-
-// Apply CORS middleware
 app.use(cors(corsOptions));
 
 app.use((req, res, next) => {

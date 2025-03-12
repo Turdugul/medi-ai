@@ -1,17 +1,21 @@
 {
-  "name": "backend",
+  "name": "dentists-assistant-backend",
   "version": "1.0.0",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "build": "echo 'No build step required'"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "Backend for Dentist Assistant App",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "axios": "^1.7.9",
     "bcryptjs": "^3.0.0",

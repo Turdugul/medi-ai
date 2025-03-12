@@ -127,15 +127,35 @@ const Assistant = () => {
         dispatch(setFormattedReport(response.data.formattedReport));
         showToast("success", "Processing complete!");
         
+        // Reset file states
         setSelectedFile(null);
         dispatch(setAudioBlob(null));
         dispatch(setAudioUrl(null));
         dispatch(setSelectedFileMetadata(null));
         
+        // Reset file input
         const fileInput = document.querySelector('input[type="file"]');
         if (fileInput) {
           fileInput.value = '';
         }
+
+        // Reset audio player if it exists
+        const audioPlayer = document.querySelector('audio');
+        if (audioPlayer) {
+          audioPlayer.src = '';
+        }
+
+        // Reset form fields
+        dispatch(resetForm());
+        
+        // Reset audio length
+        setAudioLength(0);
+        
+        // Reset recording state if needed
+        if (isRecording) {
+          stopRecording();
+        }
+
       } else {
         throw new Error("No response from server");
       }
