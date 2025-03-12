@@ -220,6 +220,7 @@ const AudioList = () => {
     }
 
     try {
+      // Sort records by date
       const sortedRecords = [...audioRecords].sort((a, b) => {
         if (!a?.createdDate || !b?.createdDate) return 0;
         const dateA = new Date(`${a.createdDate} ${a.createdTime || ''}`);
@@ -227,9 +228,23 @@ const AudioList = () => {
         return dateB - dateA;
       });
       
-      const filtered = sortedRecords.filter((record) => 
-        record?._id?.toString().toLowerCase().includes((searchId || '').toLowerCase())
-      );
+      // Filter records
+      const searchTerm = (searchId || '').toLowerCase().trim();
+      const filtered = sortedRecords.filter((record) => {
+        if (!searchTerm) return true;
+        
+        // Search in multiple fields
+        const searchFields = [
+          record?._id?.toString().toLowerCase(),
+          record?.patientId?.toString().toLowerCase(),
+          record?.title?.toLowerCase(),
+        ];
+        
+        // Return true if any field contains the search term
+        return searchFields.some(field => 
+          field && field.includes(searchTerm)
+        );
+      });
       
       const total = Math.ceil(filtered.length / recordsPerPage);
       const start = (currentPage - 1) * recordsPerPage;

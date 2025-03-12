@@ -23,8 +23,19 @@ const SearchInput = memo(({
       type={type}
       placeholder={placeholder}
       value={value}
-      onChange={onChange}
-      className={`input pl-12 pr-12 transition-all duration-300 focus:ring-offset-2 focus:ring-2 focus:ring-blue-500 ${inputClassName}`}
+      onChange={(e) => {
+        const newValue = e.target.value;
+        onChange(e);
+        // If the input is cleared manually, trigger onClear
+        if (newValue === '' && onClear) {
+          onClear();
+        }
+      }}
+      className={`w-full py-2.5 pl-12 pr-12 bg-white border border-gray-200 rounded-lg 
+        focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+        transition-all duration-300 placeholder-gray-400 
+        ${value ? 'text-gray-900' : 'text-gray-600'} 
+        ${inputClassName}`}
     />
     {value && onClear && (
       <button
@@ -32,7 +43,8 @@ const SearchInput = memo(({
         className={`absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500 
           transition-all duration-300 p-1 rounded-full hover:bg-gray-100 
           transform hover:scale-110 active:scale-95 ${clearButtonClassName}`}
-        aria-label="Clear input"
+        aria-label="Clear search"
+        title="Clear search"
       >
         <FaTimes />
       </button>
