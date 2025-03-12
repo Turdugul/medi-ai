@@ -5,7 +5,8 @@ const nextConfig = {
     unoptimized: true
   },
   trailingSlash: true,
-  distDir: 'out'
+  distDir: 'out',
+  basePath: ''
 }
 
 module.exports = nextConfig 
