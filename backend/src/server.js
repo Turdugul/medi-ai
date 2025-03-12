@@ -17,8 +17,8 @@ console.log("API running on port:", PORT);
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
-    ? [process.env.CORS_ORIGIN, 'https://*.onrender.com']
-    : ['http://localhost:3000', 'http://localhost:3001'],
+    ? [process.env.CORS_ORIGIN] // Set this to your actual frontend URL in production
+    : ['http://localhost:3000', 'http://localhost:3001'], // Your local dev origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
