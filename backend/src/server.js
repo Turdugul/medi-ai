@@ -17,7 +17,7 @@ console.log("API running on port:", PORT);
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
-    ? [process.env.CORS_ORIGIN]
+    ? [process.env.CORS_ORIGIN, 'https://medi-ai-frontend.onrender.com']
     : ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
