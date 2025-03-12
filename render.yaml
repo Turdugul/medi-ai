@@ -29,8 +29,8 @@ services:
   # Frontend Static Site
   - type: static
     name: dentists-assistant-frontend
-    buildCommand: cd frontend && npm install && npm run build
-    distDir: frontend/out
+    buildCommand: cd frontend && npm install && npm run build && cp -r frontend/out/* frontend/
+    publishPath: frontend
     routes:
       - type: rewrite
         source: /*
