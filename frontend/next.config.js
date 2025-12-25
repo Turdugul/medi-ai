@@ -18,10 +18,8 @@ const nextConfig = {
     }
     return config;
   },
-  // Use 'standalone' for production builds on Render
-  // Remove 'output: export' as it doesn't support API routes
-  // Only set output in production, let Next.js handle dev mode
-  ...(process.env.NODE_ENV === 'production' && { output: 'standalone' }),
+  // No output mode needed - Next.js will build normally for Render
+  // This works better with Render's deployment process
 }
 
 module.exports = nextConfig;
