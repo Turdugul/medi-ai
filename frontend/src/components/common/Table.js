@@ -76,9 +76,43 @@ export function Table({ columns, data, onRowClick }) {
   );
 }
 
+// Row Actions Menu Component
+export function RowActionsMenu({ isOpen, onClose, actions = [] }) {
+  if (!isOpen || !actions.length) return null;
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[180px] z-50">
+      {actions.map((action) => {
+        const Icon = action.icon;
+        const variantClasses = {
+          primary: 'text-blue-600 hover:bg-blue-50',
+          danger: 'text-red-600 hover:bg-red-50',
+          default: 'text-gray-700 hover:bg-gray-50'
+        };
+        const className = variantClasses[action.variant] || variantClasses.default;
+
+        return (
+          <button
+            key={action.key}
+            onClick={() => {
+              action.onClick?.();
+              onClose?.();
+            }}
+            className={`w-full px-4 py-2 text-left text-sm font-medium flex items-center gap-2 transition-colors duration-200 ${className}`}
+          >
+            {Icon && <Icon className="w-4 h-4" />}
+            <span>{action.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // Add display names for debugging
 TableHeader.displayName = 'TableHeader';
 TableRow.displayName = 'TableRow';
 Table.displayName = 'Table';
+RowActionsMenu.displayName = 'RowActionsMenu';
 
 export default Table; 
