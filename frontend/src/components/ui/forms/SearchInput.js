@@ -20,8 +20,7 @@ function SearchInput({
   debounceMs = 300,
   className = '',
   disabled = false,
-  'aria-label': ariaLabel = 'Search input',
-  icon: Icon = FaSearch
+  'aria-label': ariaLabel = 'Search input'
 }) {
   const [localValue, setLocalValue] = useState(value);
 
@@ -53,7 +52,7 @@ function SearchInput({
     <div className={`relative ${className}`}>
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Icon className="h-4 w-4 text-gray-400" aria-hidden="true" />
+          <FaSearch className="h-4 w-4 text-gray-400" aria-hidden="true" />
         </div>
         <input
           type="text"

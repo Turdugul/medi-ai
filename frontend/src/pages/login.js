@@ -1,99 +1,158 @@
 import { useForm } from "react-hook-form";
-import { useState, useContext } from "react";
+import { useState, useCallback, forwardRef } from "react";
 import { useRouter } from "next/router";
-import AuthContext from "../context/AuthContext";
-import { loginUser } from "./api/auth";
 import Link from "next/link";
 import { showToast } from "../components/Toast";
-import { FaSpinner } from "react-icons/fa6";
+import { FaEnvelope, FaLock, FaSpinner } from "react-icons/fa";
+import AuthLayout from "@/components/auth/AuthLayout";
+import { useAuth } from "@/context/AuthContext";
 
-export default function Login() {
-  const { handleSubmit, setValue, formState: { errors } } = useForm();
-  const { login } = useContext(AuthContext);
+// Form validation schema
+const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+
+// Input field component
+const FormInput = forwardRef(({ icon: Icon, error, ...props }, ref) => {
+  return (
+    <div className="space-y-2">
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Icon className="h-5 w-5 text-gray-400" />
+        </div>
+        <input
+          ref={ref}
+          className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg
+            text-gray-900 placeholder-gray-500
+            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+            transition-colors duration-200
+            disabled:opacity-50 disabled:cursor-not-allowed"
+          {...props}
+        />
+      </div>
+      {error && (
+        <p className="text-sm text-red-500">{error}</p>
+      )}
+    </div>
+  );
+});
+
+// Submit button component
+function SubmitButton({ loading }) {
+  return (
+    <button
+      type="submit"
+      disabled={loading}
+      className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 
+        text-white py-2.5 rounded-lg font-medium
+        transform hover:translate-y-[-1px] hover:shadow-lg
+        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+        disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+        transition-all duration-200"
+    >
+      {loading ? (
+        <div className="flex items-center justify-center">
+          <FaSpinner className="animate-spin -ml-1 mr-2 h-5 w-5" />
+          Signing in...
+        </div>
+      ) : (
+        "Sign In"
+      )}
+    </button>
+  );
+}
+
+// Register link component
+function RegisterLink() {
+  return (
+    <div className="text-center space-y-2">
+      <p className="text-gray-600">Don't have an account?</p>
+      <Link 
+        href="/register" 
+        className="inline-block text-blue-600 hover:text-blue-700 font-medium
+          transition-colors duration-200 hover:underline"
+      >
+        Create an account
+      </Link>
+    </div>
+  );
+}
+
+// Main login component
+function Login() {
+  const { 
+    handleSubmit, 
+    register, 
+    formState: { errors } 
+  } = useForm({
+    defaultValues: {
+      email: '',
+      password: ''
+    }
+  });
+
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const onSubmit = async (data) => {
+  const onSubmit = useCallback(async (data) => {
     setLoading(true);
-
     try {
-      console.log("🔄 Logging in...");
-      const responseData = await loginUser(data);
-
-      if (responseData && responseData.token) {
-        login(responseData.token);
+      const result = await login(data);
+      if (result.success) {
         showToast("success", "Login successful! Redirecting...");
-        setTimeout(() => router.push("/"), 3000);
       } else {
-        throw new Error("Invalid login response.");
+        throw new Error(result.error || "Login failed");
       }
     } catch (error) {
       showToast("error", error.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [login]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md">
-        <h2 className="text-4xl font-bold text-center text-gray-800 mb-2 tracking-tight">
-          Medi Mate
-        </h2>
-        <p className="text-center text-gray-600 mb-8">Welcome back</p>
+    <AuthLayout title="Welcome Back!" subtitle="Sign in to your account">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <FormInput
+          icon={FaEnvelope}
+          type="email"
+          placeholder="Enter your email"
+          disabled={loading}
+          error={errors.email?.message}
+          {...register("email", {
+            required: "Email is required",
+            pattern: {
+              value: EMAIL_PATTERN,
+              message: "Invalid email address"
+            }
+          })}
+        />
 
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 space-y-6 border border-gray-100">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Email Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Email Address</label>
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white/50 backdrop-blur-sm"
-                onChange={(e) => setValue("email", e.target.value, { shouldValidate: true })}
-              />
-              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
-            </div>
+        <FormInput
+          icon={FaLock}
+          type="password"
+          placeholder="Enter your password"
+          disabled={loading}
+          error={errors.password?.message}
+          {...register("password", {
+            required: "Password is required",
+            minLength: {
+              value: 6,
+              message: "Password must be at least 6 characters"
+            }
+          })}
+        />
 
-            {/* Password Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <input
-                type="password"
-                placeholder="Enter your password"
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-white/50 backdrop-blur-sm"
-                onChange={(e) => setValue("password", e.target.value, { shouldValidate: true })}
-              />
-              {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
-            </div>
-
-            {/* Login Button */}
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <FaSpinner className="animate-spin text-lg" />
-                  <span>Signing in...</span>
-                </>
-              ) : (
-                "Sign In"
-              )}
-            </button>
-          </form>
-
-          {/* Register Link */}
-          <p className="text-center text-gray-600 text-sm">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200">
-              Create account
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+        <SubmitButton loading={loading} />
+        <RegisterLink />
+      </form>
+    </AuthLayout>
   );
 }
+
+// Add display names for better debugging
+FormInput.displayName = 'FormInput';
+SubmitButton.displayName = 'SubmitButton';
+RegisterLink.displayName = 'RegisterLink';
+Login.displayName = 'Login';
+
+export default Login;

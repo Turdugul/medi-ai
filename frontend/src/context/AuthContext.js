@@ -1,71 +1,135 @@
-import { createContext, useState, useEffect } from "react";
-import { jwtDecode } from "jwt-decode";
+import { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
-const AuthContext = createContext();
+const AuthContext = createContext({
+  user: null,
+  token: null,
+  loading: true,
+  login: async () => {},
+  logout: () => {},
+  register: async () => {},
+  isAuthenticated: false,
+});
 
-export const AuthProvider = ({ children }) => {
+export function useAuth() {
+  return useContext(AuthContext);
+}
+
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-
- 
-  const decodeToken = (token) => {
-    try {
-      return jwtDecode(token);
-    } catch (error) {
-      console.error("Error decoding token:", error);
-      return null;
-    }
-  };
-
-  const isTokenExpired = (token) => {
-    const decodedToken = decodeToken(token);
-    return decodedToken ? decodedToken.exp * 1000 < Date.now() : true;
-  };
+  const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedToken = localStorage.getItem("token");
-
-      if (storedToken && !isTokenExpired(storedToken)) {
-        const decodedToken = decodeToken(storedToken);
-        setUser({
-          ...decodedToken,
-          _id: decodedToken._id || decodedToken.sub || decodedToken.userId || decodedToken.uid,
-        });
-        setToken(storedToken);
-      } else {
-        logout(); // Token expired or missing
-      }
-    }
+    setMounted(true);
+    checkUser();
   }, []);
 
-  const login = (newToken) => {
-    if (!isTokenExpired(newToken)) {
-      const decodedToken = decodeToken(newToken);
-      setUser({
-        ...decodedToken,
-        _id: decodedToken._id || decodedToken.sub || decodedToken.userId || decodedToken.uid,
-      });
+  const checkUser = () => {
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        const decoded = jwtDecode(storedToken);
+        const currentTime = Date.now() / 1000;
+        
+        if (decoded.exp < currentTime) {
+          logout();
+        } else {
+          setUser(decoded);
+          setToken(storedToken);
+          axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      logout();
+    }
+    setLoading(false);
+  };
+
+  const login = async (credentials) => {
+    if (typeof window === 'undefined') return { success: false };
+
+    try {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, credentials);
+      const { token: newToken } = response.data;
+      
+      localStorage.setItem('token', newToken);
+      const decoded = jwtDecode(newToken);
+      setUser(decoded);
       setToken(newToken);
-      localStorage.setItem("token", newToken);
-    } else {
-      logout(); // Log out if the token is expired
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+      
+      router.push('/');
+      return { success: true };
+    } catch (error) {
+      console.error('Login error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Login failed'
+      };
     }
   };
 
   const logout = () => {
-    setToken(null);
+    if (typeof window === 'undefined') return;
+
+    localStorage.removeItem('token');
     setUser(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
+    setToken(null);
+    delete axios.defaults.headers.common['Authorization'];
+    router.push('/login');
+  };
+
+  const register = async (userData) => {
+    if (typeof window === 'undefined') return { success: false };
+
+    try {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, userData);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Registration error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Registration failed'
+      };
     }
   };
 
+  const value = {
+    user,
+    token,
+    loading,
+    login,
+    logout,
+    register,
+    isAuthenticated: !!user,
+  };
+
+  // Return null during SSR
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  // Return null until mounted on client
+  if (!mounted) {
+    return null;
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!loading && children}
     </AuthContext.Provider>
   );
-};
+}
 
 export default AuthContext;

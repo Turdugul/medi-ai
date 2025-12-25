@@ -1,8 +1,8 @@
 // AudioList.js
-import React, { useState, useEffect, useContext, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import AuthContext from "@/context/AuthContext";
 import { fetchAudioRecords, fetchAudioRecordById, deleteAudioRecord, updateAudioRecord, downloadAudioFile } from "@/pages/api/audio";
-import { FaSpinner } from "react-icons/fa";
+import { FaSpinner, FaEdit, FaTrash } from "react-icons/fa";
 import Modal from "./Modal";
 import { LoadingContent } from "./ModalContents";
 import { showToast } from "./Toast";
@@ -13,7 +13,62 @@ import RecordActions from './audio/RecordActions';
 import AudioListHeader from './audio/AudioListHeader';
 import AudioListTable from './audio/AudioListTable';
 
-const AudioList = () => {
+// Utility functions moved outside component
+function getFilteredAndPaginatedRecords(records, searchId, currentPage, recordsPerPage) {
+  if (!records || !Array.isArray(records) || records.length === 0) {
+    return { paginatedRecords: [], totalPages: 0 };
+  }
+
+  try {
+    // Filter records first
+    const filtered = records.filter(record => 
+      record?._id?.toString().toLowerCase().includes((searchId || '').toLowerCase())
+    );
+
+    // Sort filtered records
+    const sortedRecords = [...filtered].sort((a, b) => {
+      if (!a?.createdDate || !b?.createdDate) return 0;
+      const dateA = new Date(`${a.createdDate} ${a.createdTime || ''}`);
+      const dateB = new Date(`${b.createdDate} ${b.createdTime || ''}`);
+      return dateB - dateA;
+    });
+    
+    // Calculate pagination
+    const total = Math.ceil(sortedRecords.length / recordsPerPage);
+    const start = (currentPage - 1) * recordsPerPage;
+    const paginated = sortedRecords.slice(start, start + recordsPerPage);
+    
+    return { 
+      paginatedRecords: paginated, 
+      totalPages: Math.max(1, total)
+    };
+  } catch (error) {
+    console.error('Error in pagination calculation:', error);
+    return { paginatedRecords: [], totalPages: 0 };
+  }
+}
+
+function getActionButtons(record, onEdit, onDelete) {
+  return [
+    {
+      key: 'edit',
+      label: 'Edit Record',
+      icon: FaEdit,
+      onClick: () => onEdit(record),
+      variant: 'primary'
+    },
+    {
+      key: 'delete',
+      label: 'Delete Record',
+      icon: FaTrash,
+      onClick: () => onDelete(record),
+      variant: 'danger'
+    }
+  ];
+}
+
+// Main component using named function declaration
+function AudioList() {
   const { token } = useContext(AuthContext);
   const [audioRecords, setAudioRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -25,16 +80,10 @@ const AudioList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [error, setError] = useState(null);
-  const [isMounted, setIsMounted] = useState(false);
   const recordsPerPage = 10;
 
-  // Handle client-side mounting
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Load audio records
-  const loadAudioRecords = useCallback(async () => {
+  // Data fetching
+  async function fetchRecords() {
     if (!token) {
       setAudioRecords([]);
       setIsLoading(false);
@@ -45,7 +94,7 @@ const AudioList = () => {
     setError(null);
     try {
       const response = await fetchAudioRecords(token);
-      const records = response?.data || [];
+      const records = response?.data;
       setAudioRecords(Array.isArray(records) ? records : []);
     } catch (error) {
       console.error("Failed to load records:", error);
@@ -54,16 +103,14 @@ const AudioList = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }
 
   useEffect(() => {
-    if (isMounted && token) {
-      loadAudioRecords();
-    }
-  }, [loadAudioRecords, isMounted, token]);
+    fetchRecords();
+  }, [token]);
 
-  // Memoize handlers
-  const handleViewDetails = useCallback(async (recordId) => {
+  // Event handlers
+  async function handleViewDetails(recordId) {
     if (!token) return;
     setIsLoading(true);
     try {
@@ -77,22 +124,19 @@ const AudioList = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }
 
-  const handleEditRecord = useCallback((record) => {
+  function handleEditRecord(record) {
     setEditingRecord(record);
     setOpenMenuId(null);
-  }, []);
+  }
 
-  const handleDeleteRecord = useCallback(async (recordId) => {
+  async function handleDeleteRecord(recordId) {
     if (!token || !recordId) return;
     setIsLoading(true);
     try {
       await deleteAudioRecord(recordId, token);
-      setAudioRecords(prev => {
-        if (!Array.isArray(prev)) return [];
-        return prev.filter(r => r?._id !== recordId);
-      });
+      setAudioRecords(prev => prev.filter(r => r._id !== recordId));
       setDeletingRecord(null);
       showToast("success", "Record deleted successfully");
     } catch (error) {
@@ -101,23 +145,22 @@ const AudioList = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }
 
-  const handleUpdateRecord = useCallback(async (updatedData) => {
+  async function handleUpdateRecord(updatedData) {
     if (!token || !editingRecord?._id) return;
     try {
       const response = await updateAudioRecord(editingRecord._id, token, updatedData);
-      const updatedRecord = response?.data || null;
+      const updatedRecord = response?.data;
       
       if (updatedRecord) {
-        setAudioRecords(prev => {
-          if (!Array.isArray(prev)) return [];
-          return prev.map(record => 
-            record?._id === editingRecord._id 
+        setAudioRecords(prev => 
+          prev.map(record => 
+            record._id === editingRecord._id 
               ? { ...record, ...updatedData }
               : record
-          );
-        });
+          )
+        );
         setEditingRecord(null);
         showToast("success", "Record updated successfully");
       } else {
@@ -127,89 +170,23 @@ const AudioList = () => {
       console.error("Update error:", error);
       showToast("error", error.message || "Failed to update record. Please try again.");
     }
-  }, [editingRecord, token]);
-
-  // Memoize filtered records with pagination
-  const { paginatedRecords, totalPages } = useMemo(() => {
-    if (!Array.isArray(audioRecords) || audioRecords.length === 0) {
-      return { paginatedRecords: [], totalPages: 0 };
-    }
-
-    try {
-      const sortedRecords = [...audioRecords].sort((a, b) => {
-        if (!a?.createdDate || !b?.createdDate) return 0;
-        const dateA = new Date(`${a.createdDate} ${a.createdTime || ''}`);
-        const dateB = new Date(`${b.createdDate} ${b.createdTime || ''}`);
-        return dateB - dateA;
-      });
-      
-      const filtered = sortedRecords.filter((record) => 
-        record?._id?.toString().toLowerCase().includes((searchId || '').toLowerCase())
-      );
-      
-      const total = Math.ceil(filtered.length / recordsPerPage);
-      const start = (currentPage - 1) * recordsPerPage;
-      const paginated = filtered.slice(start, start + recordsPerPage);
-      
-      return { 
-        paginatedRecords: paginated, 
-        totalPages: Math.max(1, total)
-      };
-    } catch (error) {
-      console.error('Error in pagination calculation:', error);
-      return { paginatedRecords: [], totalPages: 0 };
-    }
-  }, [audioRecords, searchId, currentPage, recordsPerPage]);
-
-  // Row actions configuration
-  const getRowActions = useCallback((record) => [
-    {
-      key: 'edit',
-      label: 'Edit Record',
-      icon: FaEdit,
-      onClick: () => handleEditRecord(record),
-      variant: 'primary'
-    },
-    {
-      key: 'delete',
-      label: 'Delete Record',
-      icon: FaTrash,
-      onClick: () => {
-        setDeletingRecord(record);
-        setOpenMenuId(null);
-      },
-      variant: 'danger'
-    }
-  ], [handleEditRecord]);
-
-  // Render row actions
-  const renderRowActions = useCallback((record) => (
-    <RecordActions
-      record={record}
-      token={token}
-      openMenuId={openMenuId}
-      onViewDetails={handleViewDetails}
-      onDownload={downloadAudioFile}
-      onMenuToggle={(id) => setOpenMenuId(openMenuId === id ? null : id)}
-      onMenuClose={() => setOpenMenuId(null)}
-      getRowActions={getRowActions}
-    />
-  ), [openMenuId, token, handleViewDetails, getRowActions]);
-
-  // Only render content after component is mounted
-  if (!isMounted) {
-    return (
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        <AudioListHeader
-          searchId=""
-          onSearchChange={() => {}}
-          onSearchClear={() => {}}
-          totalRecords={0}
-        />
-        <p className="text-gray-600 text-center">Loading...</p>
-      </div>
-    );
   }
+
+  function handleMenuToggle(id) {
+    setOpenMenuId(openMenuId === id ? null : id);
+  }
+
+  function handleMenuClose() {
+    setOpenMenuId(null);
+  }
+
+  // Get filtered and paginated records
+  const { paginatedRecords, totalPages } = getFilteredAndPaginatedRecords(
+    audioRecords,
+    searchId,
+    currentPage,
+    recordsPerPage
+  );
 
   // Loading state
   if (isLoading) {
@@ -243,7 +220,7 @@ const AudioList = () => {
           <div className="text-red-500 text-lg font-semibold">Error loading records</div>
           <div className="text-gray-600">{error}</div>
           <button
-            onClick={loadAudioRecords}
+            onClick={fetchRecords}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
           >
             Try Again
@@ -260,10 +237,10 @@ const AudioList = () => {
         searchId={searchId}
         onSearchChange={(e) => setSearchId(e.target.value)}
         onSearchClear={() => setSearchId("")}
-        totalRecords={audioRecords?.length || 0}
+        totalRecords={audioRecords.length}
       />
 
-      {!audioRecords || audioRecords.length === 0 ? (
+      {!paginatedRecords.length ? (
         <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
           <p className="text-gray-600">No audio records found</p>
         </div>
@@ -273,7 +250,22 @@ const AudioList = () => {
           totalPages={totalPages}
           currentPage={currentPage}
           onPageChange={setCurrentPage}
-          renderRowActions={renderRowActions}
+          renderRowActions={(record) => (
+            <RecordActions
+              record={record}
+              token={token}
+              openMenuId={openMenuId}
+              onViewDetails={handleViewDetails}
+              onDownload={downloadAudioFile}
+              onMenuToggle={handleMenuToggle}
+              onMenuClose={handleMenuClose}
+              getRowActions={(record) => getActionButtons(
+                record,
+                handleEditRecord,
+                setDeletingRecord
+              )}
+            />
+          )}
         />
       )}
 
@@ -299,7 +291,7 @@ const AudioList = () => {
                   <input
                     type="text"
                     id={field}
-                    value={editingRecord[field]}
+                    value={editingRecord[field] || ''}
                     onChange={(e) => setEditingRecord(prev => ({ ...prev, [field]: e.target.value }))}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     placeholder={`Enter ${field === 'title' ? 'new title' : 'patient ID'}`}
@@ -316,8 +308,8 @@ const AudioList = () => {
               </button>
               <button
                 onClick={() => handleUpdateRecord({
-                  title: editingRecord.title,
-                  patientId: editingRecord.patientId
+                  title: editingRecord.title || '',
+                  patientId: editingRecord.patientId || ''
                 })}
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               >
@@ -338,7 +330,7 @@ const AudioList = () => {
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-red-600">Delete Record</h2>
             <p className="text-gray-600">
-              Are you sure you want to delete "{deletingRecord.title}"? This action cannot be undone.
+              Are you sure you want to delete "{deletingRecord.title || 'Untitled'}"? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-2">
               <button
@@ -367,6 +359,6 @@ const AudioList = () => {
       )}
     </div>
   );
-};
+}
 
 export default AudioList;

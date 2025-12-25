@@ -1,111 +1,193 @@
-import { useContext, useState, useCallback, memo } from "react";
-import { useRouter } from "next/router";
-import AuthContext from "../context/AuthContext";
-import Layout from "@/components/Layout";
-import { 
-  FaUser, 
-  FaHeadphonesAlt, 
-  FaSignOutAlt, 
-  FaEnvelope
-} from "react-icons/fa";
-import { MdRecordVoiceOver } from "react-icons/md";
-import { showToast } from "@/components/Toast";
+import { useState, useContext } from 'react';
+import { FaUser, FaEnvelope, FaUserMd, FaKey } from 'react-icons/fa';
+import AuthContext from '@/context/AuthContext';
+import MainLayout from '@/components/layout/MainLayout';
+import Card from '@/components/ui/Card';
+import Input from '@/components/ui/forms/Input';
+import Button from '@/components/ui/Button';
+import { showToast } from '@/components/Toast';
 
-// Memoize the action button component
-const ActionButton = memo(({ icon: Icon, label, onClick, variant = "primary" }) => {
-  const baseClasses = "flex items-center gap-3 px-4 py-3 rounded-xl hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200";
-  const variants = {
-    primary: "bg-gradient-to-r from-blue-600 to-indigo-600 text-white",
-    secondary: "bg-gradient-to-r from-purple-600 to-pink-600 text-white",
-    danger: "text-red-600 hover:bg-red-50"
+const Profile = () => {
+  const { user, updateProfile } = useContext(AuthContext);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: user?.fullName || '',
+    email: user?.email || '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [errors, setErrors] = useState({});
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateForm = (isPasswordUpdate = false) => {
+    const newErrors = {};
+    
+    if (!isPasswordUpdate) {
+      if (!formData.fullName.trim()) {
+        newErrors.fullName = 'Full name is required';
+      }
+      if (!formData.email.trim()) {
+        newErrors.email = 'Email is required';
+      } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
+        newErrors.email = 'Invalid email address';
+      }
+    } else {
+      if (!formData.currentPassword) {
+        newErrors.currentPassword = 'Current password is required';
+      }
+      if (!formData.newPassword) {
+        newErrors.newPassword = 'New password is required';
+      } else if (formData.newPassword.length < 6) {
+        newErrors.newPassword = 'Password must be at least 6 characters';
+      }
+      if (formData.newPassword !== formData.confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    try {
+      await updateProfile({
+        fullName: formData.fullName,
+        email: formData.email,
+      });
+      showToast('success', 'Profile updated successfully');
+    } catch (error) {
+      showToast('error', error.message || 'Failed to update profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    if (!validateForm(true)) return;
+
+    setIsLoading(true);
+    try {
+      await updateProfile({
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+      });
+      showToast('success', 'Password updated successfully');
+      setFormData(prev => ({
+        ...prev,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      }));
+    } catch (error) {
+      showToast('error', error.message || 'Failed to update password');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <button
-      onClick={onClick}
-      className={`${baseClasses} ${variants[variant]}`}
-    >
-      <Icon className={variant === "danger" ? "w-4 h-4" : "text-xl"} />
-      <span>{label}</span>
-    </button>
-  );
-});
-
-// Memoize the profile header component
-const ProfileHeader = memo(({ user }) => (
-  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-gray-100">
-    <div className="flex items-center gap-6">
-      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500
-        flex items-center justify-center shadow-lg">
-        <FaUser className="text-white text-3xl" />
-      </div>
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">{user?.name || "User"}</h1>
-        <p className="text-gray-600 flex items-center gap-2">
-          <FaEnvelope className="text-gray-400" />
-          {user?.email || "email@example.com"}
-        </p>
-      </div>
-    </div>
-  </div>
-));
-
-const Profile = () => {
-  const { user, logout } = useContext(AuthContext);
-  const router = useRouter();
-
-  // Memoize callback functions
-  const handleNavigation = useCallback((path) => {
-    router.push(path);
-  }, [router]);
-
-  const handleLogout = useCallback(() => {
-    logout();
-    router.push("/");
-    showToast("info", "Logged out successfully");
-  }, [logout, router]);
-
-  return (
-    <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <ProfileHeader user={user} />
-
-          {/* Quick Actions */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <ActionButton
-                icon={MdRecordVoiceOver}
-                label="New Recording"
-                onClick={() => handleNavigation("/assistant")}
-                variant="primary"
-              />
-              <ActionButton
-                icon={FaHeadphonesAlt}
-                label="View Recordings"
-                onClick={() => handleNavigation("/audiolist")}
-                variant="secondary"
-              />
-            </div>
+    <MainLayout title="Profile Settings">
+      <div className="space-y-6">
+        <Card
+          title="Personal Information"
+          actions={
+            <Button
+              type="submit"
+              onClick={handleProfileUpdate}
+              isLoading={isLoading}
+            >
+              Save Changes
+            </Button>
+          }
+        >
+          <div className="space-y-4">
+            <Input
+              label="Full Name"
+              name="fullName"
+              icon={FaUserMd}
+              value={formData.fullName}
+              onChange={handleChange}
+              error={errors.fullName}
+              placeholder="Enter your full name"
+            />
+            <Input
+              label="Email Address"
+              name="email"
+              type="email"
+              icon={FaEnvelope}
+              value={formData.email}
+              onChange={handleChange}
+              error={errors.email}
+              placeholder="Enter your email"
+            />
           </div>
+        </Card>
 
-          {/* Account Settings */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Account Settings</h2>
-            <div className="space-y-3">
-              <ActionButton
-                icon={FaSignOutAlt}
-                label="Logout"
-                onClick={handleLogout}
-                variant="danger"
-              />
-            </div>
+        <Card
+          title="Change Password"
+          actions={
+            <Button
+              type="submit"
+              onClick={handlePasswordUpdate}
+              isLoading={isLoading}
+            >
+              Update Password
+            </Button>
+          }
+        >
+          <div className="space-y-4">
+            <Input
+              label="Current Password"
+              name="currentPassword"
+              type="password"
+              icon={FaKey}
+              value={formData.currentPassword}
+              onChange={handleChange}
+              error={errors.currentPassword}
+              placeholder="Enter current password"
+            />
+            <Input
+              label="New Password"
+              name="newPassword"
+              type="password"
+              icon={FaKey}
+              value={formData.newPassword}
+              onChange={handleChange}
+              error={errors.newPassword}
+              placeholder="Enter new password"
+            />
+            <Input
+              label="Confirm New Password"
+              name="confirmPassword"
+              type="password"
+              icon={FaKey}
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              error={errors.confirmPassword}
+              placeholder="Confirm new password"
+            />
           </div>
-        </div>
+        </Card>
       </div>
-    </Layout>
+    </MainLayout>
   );
 };
 
-export default memo(Profile);
+export default Profile;

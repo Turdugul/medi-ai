@@ -1,33 +1,38 @@
 import React, { useEffect, useRef, memo, useCallback } from 'react';
-import { FaTimes } from 'react-icons/fa';
+import { FaTimes, FaSpinner } from 'react-icons/fa';
 import { createPortal } from 'react-dom';
-import { FaSpinner } from 'react-icons/fa';
 
-// Memoize the backdrop component
-const Backdrop = memo(({ onClose, variant = 'default' }) => (
-  <div 
-    className={`fixed inset-0 transition-opacity duration-300 ${
-      variant === 'blur' ? 'bg-black/30 backdrop-blur-sm' : 'bg-black/50'
-    }`}
-    onClick={onClose}
-    aria-hidden="true"
-  />
-));
+// Backdrop Component
+function Backdrop({ onClose, variant = 'default' }) {
+  return (
+    <div 
+      className={`fixed inset-0 transition-opacity duration-300 ${
+        variant === 'blur' ? 'bg-black/30 backdrop-blur-sm' : 'bg-black/50'
+      }`}
+      onClick={onClose}
+      aria-hidden="true"
+    />
+  );
+}
+Backdrop.displayName = 'Backdrop';
 
-// Memoize the close button component
-const CloseButton = memo(({ onClose, className = '' }) => (
-  <button
-    onClick={onClose}
-    className={`absolute right-4 top-4 p-2 rounded-lg text-gray-400 hover:text-gray-500 
-      hover:bg-gray-100/80 transition-all duration-200 ${className}`}
-    aria-label="Close modal"
-  >
-    <FaTimes className="w-4 h-4" />
-  </button>
-));
+// Close Button Component
+function CloseButton({ onClose, className = '' }) {
+  return (
+    <button
+      onClick={onClose}
+      className={`absolute right-4 top-4 p-2 rounded-lg text-gray-400 hover:text-gray-500 
+        hover:bg-gray-100/80 transition-all duration-200 ${className}`}
+      aria-label="Close modal"
+    >
+      <FaTimes className="w-4 h-4" />
+    </button>
+  );
+}
+CloseButton.displayName = 'CloseButton';
 
-// Memoize the header component
-const ModalHeader = memo(({ title, subtitle, icon: Icon, variant = 'default' }) => {
+// Modal Header Component
+function ModalHeader({ title, subtitle, icon: Icon, variant = 'default' }) {
   if (!title && !subtitle && !Icon) return null;
 
   return (
@@ -53,55 +58,59 @@ const ModalHeader = memo(({ title, subtitle, icon: Icon, variant = 'default' }) 
       </div>
     </div>
   );
-});
+}
+ModalHeader.displayName = 'ModalHeader';
 
-// Memoize the footer component
-const ModalFooter = memo(({ 
-  primaryAction, 
+// Modal Footer Component
+function ModalFooter({
+  primaryAction,
   secondaryAction,
   primaryLabel = 'Confirm',
   secondaryLabel = 'Cancel',
   primaryVariant = 'primary',
   isSubmitting = false
-}) => {
+}) {
   if (!primaryAction && !secondaryAction) return null;
 
-  const primaryClasses = {
-    primary: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
-    danger: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
-    success: 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
-  };
-
   return (
-    <div className="px-6 py-4 bg-gray-50 rounded-b-xl border-t flex justify-end gap-3">
-      {secondaryAction && (
-        <button
-          onClick={secondaryAction}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 
-            rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          {secondaryLabel}
-        </button>
-      )}
-      {primaryAction && (
-        <button
-          onClick={primaryAction}
-          disabled={isSubmitting}
-          className={`px-4 py-2 text-sm font-medium text-white rounded-md 
-            focus:outline-none focus:ring-2 focus:ring-offset-2
-            transition-all duration-200 disabled:opacity-50
-            ${primaryClasses[primaryVariant]}`}
-        >
-          {isSubmitting ? (
-            <FaSpinner className="w-5 h-5 animate-spin" />
-          ) : primaryLabel}
-        </button>
-      )}
+    <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+      <div className="flex justify-end gap-3">
+        {secondaryAction && (
+          <button
+            onClick={secondaryAction}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border 
+              border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            {secondaryLabel}
+          </button>
+        )}
+        {primaryAction && (
+          <button
+            onClick={primaryAction}
+            disabled={isSubmitting}
+            className={`px-4 py-2 text-sm font-medium text-white rounded-md 
+              focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200
+              ${primaryVariant === 'danger' ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' :
+                primaryVariant === 'success' ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' :
+                'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+              } disabled:opacity-50`}
+          >
+            {isSubmitting ? (
+              <div className="flex items-center">
+                <FaSpinner className="animate-spin mr-2" />
+                Loading...
+              </div>
+            ) : primaryLabel}
+          </button>
+        )}
+      </div>
     </div>
   );
-});
+}
+ModalFooter.displayName = 'ModalFooter';
 
-const Modal = ({ 
+// Main Modal Component
+function Modal({ 
   isOpen, 
   onClose,
   children,
@@ -122,7 +131,7 @@ const Modal = ({
   isSubmitting,
   isLoading,
   backdropVariant = 'default'
-}) => {
+}) {
   const modalRef = useRef(null);
 
   // Memoize the escape key handler
@@ -209,11 +218,10 @@ const Modal = ({
     bottom: 'items-end pb-20'
   };
 
-  return createPortal(
+  const modalContent = (
     <div className="fixed inset-0 z-[100] overflow-y-auto">
       <Backdrop onClose={!preventClose ? onClose : undefined} variant={backdropVariant} />
 
-      {/* Modal */}
       <div className={`flex min-h-full justify-center p-4 ${positionClasses[position]}`}>
         <div
           ref={modalRef}
@@ -222,14 +230,10 @@ const Modal = ({
           role="dialog"
           aria-modal="true"
           tabIndex={-1}
-          style={{
-            zIndex: 101,
-            position: 'relative'
-          }}
+          style={{ zIndex: 101 }}
         >
           {showClose && !preventClose && <CloseButton onClose={onClose} />}
 
-          {/* Header */}
           <ModalHeader 
             title={title}
             subtitle={subtitle}
@@ -237,7 +241,6 @@ const Modal = ({
             variant={headerVariant}
           />
 
-          {/* Content */}
           <div className="p-6">
             {isLoading ? (
               <div className="flex justify-center items-center py-8">
@@ -248,7 +251,6 @@ const Modal = ({
             )}
           </div>
 
-          {/* Footer */}
           {(primaryAction || secondaryAction) && (
             <ModalFooter
               primaryAction={primaryAction}
@@ -261,9 +263,12 @@ const Modal = ({
           )}
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
   );
-};
+
+  return createPortal(modalContent, document.body);
+}
+
+Modal.displayName = 'Modal';
 
 export default memo(Modal);

@@ -1,37 +1,53 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Core configuration
   reactStrictMode: false,
-  output: 'standalone',
-  poweredByHeader: false,
-  generateEtags: true,
-  distDir: '.next',
-  compress: true,
-  experimental: {
-    optimizeCss: false,
+  swcMinify: true,
+
+  // Environment configuration
+  env: {
+    API_URL: process.env.API_URL || 'http://localhost:5000',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+    NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://dentists-assistant-ai.onrender.com',
   },
-  // Ensure static files are served correctly
-  async headers() {
-    return [
+
+  // Development configuration
+  experimental: {
+    // Enable modern development features
+    scrollRestoration: true,
+  },
+
+  // Image configuration
+  images: {
+    domains: ['localhost', 'dentists-assistant-ai.onrender.com'],
+    remotePatterns: [
       {
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
+        protocol: 'https',
+        hostname: '**',
       },
-      {
-        source: '/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-    ];
+    ],
+  },
+
+  // Webpack configuration
+  webpack: (config, { dev, isServer }) => {
+    // Optimize for development
+    if (dev) {
+      config.optimization.moduleIds = 'named';
+      config.optimization.chunkIds = 'named';
+    }
+
+    // Client-side polyfills
+    if (!isServer) {
+      config.resolve.fallback = {
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+
+    return config;
   },
 };
 
 module.exports = nextConfig;
+

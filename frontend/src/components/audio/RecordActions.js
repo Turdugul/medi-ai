@@ -1,54 +1,73 @@
-import React, { memo } from 'react';
-import { FaExternalLinkAlt, FaDownload, FaEllipsisV } from 'react-icons/fa';
-import { RowActionsMenu } from '../common/Table';
+import React from 'react';
+import { FaEye, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
+import { downloadAudioFile } from '@/pages/api/audio';
 
-const RecordActions = memo(({ 
-  record, 
-  token, 
-  openMenuId,
+function ActionButton({ icon: Icon, label, onClick, variant = 'default' }) {
+  const baseClasses = 'p-2 rounded-full transition-colors duration-200';
+  const variantClasses = {
+    default: 'text-gray-600 hover:bg-gray-100',
+    danger: 'text-red-600 hover:bg-red-50',
+    primary: 'text-blue-600 hover:bg-blue-50',
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      className={`${baseClasses} ${variantClasses[variant]}`}
+      title={label}
+    >
+      <Icon className="w-4 h-4" />
+      <span className="sr-only">{label}</span>
+    </button>
+  );
+}
+
+ActionButton.displayName = 'ActionButton';
+
+function RecordActions({
+  record,
   onViewDetails,
-  onDownload,
-  onMenuToggle,
-  onMenuClose,
-  getRowActions
-}) => (
-  <div className="flex items-center justify-end gap-2 relative">
-    <button
-      onClick={() => onViewDetails(record._id)}
-      className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200"
-      aria-label="View details"
-    >
-      <FaExternalLinkAlt className="w-4 h-4" />
-    </button>
-    <button
-      onClick={() => onDownload(record._id, token, record.filename)}
-      className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all duration-200"
-      aria-label="Download audio"
-    >
-      <FaDownload className="w-4 h-4" />
-    </button>
-    <div className="relative">
-      <button
-        onClick={() => onMenuToggle(record._id)}
-        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200"
-        aria-label="More actions"
-        aria-expanded={openMenuId === record._id}
-        aria-haspopup="true"
-      >
-        <FaEllipsisV className="w-4 h-4" />
-      </button>
-      {openMenuId === record._id && (
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 z-50">
-          <RowActionsMenu
-            isOpen={true}
-            onClose={onMenuClose}
-            actions={getRowActions(record)}
-          />
-        </div>
-      )}
+  onEdit,
+  onDelete,
+  token
+}) {
+  const handleDownload = async () => {
+    try {
+      await downloadAudioFile(record._id, token);
+    } catch (error) {
+      console.error('Download error:', error);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <ActionButton
+        icon={FaEye}
+        label="View Details"
+        onClick={() => onViewDetails(record._id)}
+        variant="primary"
+      />
+      <ActionButton
+        icon={FaEdit}
+        label="Edit Record"
+        onClick={() => onEdit(record)}
+        variant="primary"
+      />
+      <ActionButton
+        icon={FaDownload}
+        label="Download"
+        onClick={handleDownload}
+        variant="default"
+      />
+      <ActionButton
+        icon={FaTrash}
+        label="Delete Record"
+        onClick={() => onDelete(record)}
+        variant="danger"
+      />
     </div>
-  </div>
-));
+  );
+}
 
 RecordActions.displayName = 'RecordActions';
 

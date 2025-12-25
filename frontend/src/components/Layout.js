@@ -1,69 +1,69 @@
-import { useState, useContext, useEffect, memo, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import AuthContext from "../context/AuthContext";
+import  { useAuth } from "../context/AuthContext";
 import Sidebar from "./SideBar";
 import { FiLoader } from "react-icons/fi";
 
-// Memoize the loading component
-const LoadingOverlay = memo(({ message }) => (
-  <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-    <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-white/50 backdrop-blur-sm shadow-xl">
-      <FiLoader className="w-8 h-8 text-blue-500 animate-spin" />
-      <div className="text-gray-600 font-medium animate-pulse">
-        {message}
+function LoadingOverlay({ message }) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-white/50 backdrop-blur-sm shadow-xl">
+        <FiLoader className="w-8 h-8 text-blue-500 animate-spin" />
+        <div className="text-gray-600 font-medium animate-pulse">
+          {message}
+        </div>
       </div>
     </div>
-  </div>
-));
+  );
+}
 
-// Memoize the background pattern component
-const BackgroundPattern = memo(() => (
-  <div 
-    className="absolute inset-0 bg-grid-pattern opacity-[0.015] pointer-events-none"
-    aria-hidden="true"
-  />
-));
+function BackgroundPattern() {
+  return (
+    <div 
+      className="absolute inset-0 bg-grid-pattern opacity-[0.015] pointer-events-none"
+      aria-hidden="true"
+    />
+  );
+}
 
-// Memoize the main content wrapper
-const MainContent = memo(({ children, isSidebarOpen, isPageLoading }) => (
-  <div
-    className={`
-      flex-1 transition-all duration-300 ease-out
-      ${isSidebarOpen ? "lg:ml-64 ml-0" : "ml-0"}
-      lg:ml-64 relative
-    `}
-  >
-    {/* Page Loading Overlay */}
-    {isPageLoading && (
-      <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-50">
-        <FiLoader className="w-6 h-6 text-blue-500 animate-spin" />
-      </div>
-    )}
+function MainContent({ children, isSidebarOpen, isPageLoading }) {
+  return (
+    <div
+      className={`
+        flex-1 transition-all duration-300 ease-out
+        ${isSidebarOpen ? "lg:ml-64 ml-0" : "ml-0"}
+        lg:ml-64 relative
+      `}
+    >
+      {isPageLoading && (
+        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <FiLoader className="w-6 h-6 text-blue-500 animate-spin" />
+        </div>
+      )}
 
-    {/* Main Content Area */}
-    <main className="min-h-screen p-4 lg:p-6">
-      <div className="w-full h-full rounded-2xl bg-white/70 backdrop-blur-sm shadow-xl p-4 lg:p-6">
-        {children}
-      </div>
-    </main>
-  </div>
-));
+      <main className="min-h-screen p-4 lg:p-6">
+        <div className="w-full h-full rounded-2xl bg-white/70 backdrop-blur-sm shadow-xl p-4 lg:p-6">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
 
-const Layout = ({ children }) => {
-  const { user } = useContext(AuthContext);
+function Layout({ children }) {
+  const { user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
   const router = useRouter();
 
-  // Memoize the sidebar toggle function
-  const toggleSidebar = useCallback((open) => {
-    setIsSidebarOpen(open);
-  }, []);
-
-  // Handle route change loading states
   useEffect(() => {
-    const handleStart = () => setIsPageLoading(true);
-    const handleComplete = () => setIsPageLoading(false);
+    function handleStart() {
+      setIsPageLoading(true);
+    }
+
+    function handleComplete() {
+      setIsPageLoading(false);
+    }
 
     router.events.on('routeChangeStart', handleStart);
     router.events.on('routeChangeComplete', handleComplete);
@@ -76,47 +76,52 @@ const Layout = ({ children }) => {
     };
   }, [router]);
 
-  // Redirect unauthenticated users to the login page
   useEffect(() => {
     if (user === null) {
       router.push("/login");
     }
   }, [user, router]);
 
-  // Loading state while checking authentication
   if (user === undefined) {
     return <LoadingOverlay message="Loading your workspace..." />;
+  }
+
+  function handleSidebarToggle(open) {
+    setIsSidebarOpen(open);
   }
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 relative overflow-hidden">
       <BackgroundPattern />
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+      <Sidebar isOpen={isSidebarOpen} onToggle={handleSidebarToggle} />
       <MainContent isSidebarOpen={isSidebarOpen} isPageLoading={isPageLoading}>
         {children}
       </MainContent>
     </div>
   );
-};
-
-// Add grid pattern styles to globals.css
-const cssPattern = `
-.bg-grid-pattern {
-  background-image: linear-gradient(to right, #666 1px, transparent 1px),
-    linear-gradient(to bottom, #666 1px, transparent 1px);
-  background-size: 24px 24px;
 }
-`;
 
-// Add pattern styles to document if they don't exist
+// Add grid pattern styles
 if (typeof document !== 'undefined') {
   const styleId = 'layout-patterns';
   if (!document.getElementById(styleId)) {
     const style = document.createElement('style');
     style.id = styleId;
-    style.textContent = cssPattern;
+    style.textContent = `
+      .bg-grid-pattern {
+        background-image: linear-gradient(to right, #666 1px, transparent 1px),
+          linear-gradient(to bottom, #666 1px, transparent 1px);
+        background-size: 24px 24px;
+      }
+    `;
     document.head.appendChild(style);
   }
 }
 
-export default memo(Layout);
+// Add display names for debugging
+Layout.displayName = 'Layout';
+LoadingOverlay.displayName = 'LoadingOverlay';
+BackgroundPattern.displayName = 'BackgroundPattern';
+MainContent.displayName = 'MainContent';
+
+export default Layout;
