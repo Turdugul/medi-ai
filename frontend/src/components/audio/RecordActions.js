@@ -1,73 +1,93 @@
-import React from 'react';
-import { FaEye, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
-import { downloadAudioFile } from '@/pages/api/audio';
+import React, { memo } from 'react';
+import { createPortal } from 'react-dom';
+import { FaExternalLinkAlt, FaDownload, FaEllipsisV } from 'react-icons/fa';
+import { RowActionsMenu } from '../common/Table';
 
-function ActionButton({ icon: Icon, label, onClick, variant = 'default' }) {
-  const baseClasses = 'p-2 rounded-full transition-colors duration-200';
-  const variantClasses = {
-    default: 'text-gray-600 hover:bg-gray-100',
-    danger: 'text-red-600 hover:bg-red-50',
-    primary: 'text-blue-600 hover:bg-blue-50',
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      className={`${baseClasses} ${variantClasses[variant]}`}
-      title={label}
-    >
-      <Icon className="w-4 h-4" />
-      <span className="sr-only">{label}</span>
-    </button>
+const ActionsModal = ({ isOpen, onClose, children }) => {
+  if (!isOpen) return null;
+  
+  return createPortal(
+    <div className="fixed inset-0 z-[100]" onClick={onClose}>
+      <div className="absolute inset-0" />
+      {children}
+    </div>,
+    document.body
   );
-}
+};
 
-ActionButton.displayName = 'ActionButton';
-
-function RecordActions({
-  record,
+const RecordActions = memo(({ 
+  record, 
+  token, 
+  openMenuId,
   onViewDetails,
-  onEdit,
-  onDelete,
-  token
-}) {
-  const handleDownload = async () => {
-    try {
-      await downloadAudioFile(record._id, token);
-    } catch (error) {
-      console.error('Download error:', error);
+  onDownload,
+  onMenuToggle,
+  onMenuClose,
+  getRowActions
+}) => {
+  // Get the button position for the menu
+  const [menuPosition, setMenuPosition] = React.useState({ top: 0, left: 0 });
+  const menuButtonRef = React.useRef(null);
+
+  const handleMenuToggle = (recordId) => {
+    if (menuButtonRef.current) {
+      const rect = menuButtonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.top,
+        left: rect.right,
+      });
     }
+    onMenuToggle(recordId);
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <ActionButton
-        icon={FaEye}
-        label="View Details"
+    <div className="flex items-center justify-end gap-2 relative">
+      <button
         onClick={() => onViewDetails(record._id)}
-        variant="primary"
-      />
-      <ActionButton
-        icon={FaEdit}
-        label="Edit Record"
-        onClick={() => onEdit(record)}
-        variant="primary"
-      />
-      <ActionButton
-        icon={FaDownload}
-        label="Download"
-        onClick={handleDownload}
-        variant="default"
-      />
-      <ActionButton
-        icon={FaTrash}
-        label="Delete Record"
-        onClick={() => onDelete(record)}
-        variant="danger"
-      />
+        className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all duration-200"
+        aria-label="View details"
+      >
+        <FaExternalLinkAlt className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => onDownload(record._id, token, record.filename)}
+        className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-all duration-200"
+        aria-label="Download audio"
+      >
+        <FaDownload className="w-4 h-4" />
+      </button>
+      <div className="relative">
+        <button
+          ref={menuButtonRef}
+          onClick={() => handleMenuToggle(record._id)}
+          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200"
+          aria-label="More actions"
+          aria-expanded={openMenuId === record._id}
+          aria-haspopup="true"
+        >
+          <FaEllipsisV className="w-4 h-4" />
+        </button>
+        <ActionsModal isOpen={openMenuId === record._id} onClose={onMenuClose}>
+          <div 
+            style={{
+              position: 'fixed',
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
+              transform: 'translateY(-50%)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <RowActionsMenu
+              isOpen={true}
+              onClose={onMenuClose}
+              actions={getRowActions(record)}
+            />
+          </div>
+        </ActionsModal>
+      </div>
     </div>
   );
-}
+});
 
 RecordActions.displayName = 'RecordActions';
 

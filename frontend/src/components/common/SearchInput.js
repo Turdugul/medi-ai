@@ -1,98 +1,56 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { FaSearch, FaTimes } from 'react-icons/fa';
+import React, { memo } from 'react';
+import { FaTimes } from 'react-icons/fa';
 
-// Move debounce function outside component
-function createDebouncedFunction(callback, delay) {
-  let timeoutId;
-  return (value) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => {
-      callback?.(value);
-    }, delay);
-  };
-}
-
-// Main component as named function
-function SearchInput({
-  value = '',
-  onChange,
-  placeholder = 'Search...',
-  debounceMs = 300,
+const SearchInput = memo(({ 
+  icon: Icon, 
+  value, 
+  onChange, 
+  placeholder, 
+  onClear, 
+  type = 'text',
   className = '',
-  disabled = false,
-  'aria-label': ariaLabel = 'Search input',
-  icon: Icon = FaSearch
-}) {
-  const [localValue, setLocalValue] = useState(value);
-
-  // Update local value when prop value changes
-  useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
-
-  // Debounced onChange handler
-  const debouncedOnChange = useCallback(
-    createDebouncedFunction(onChange, debounceMs),
-    [onChange, debounceMs]
-  );
-
-  // Handle input change
-  const handleChange = (e) => {
-    const newValue = e.target.value;
-    setLocalValue(newValue);
-    debouncedOnChange(newValue);
-  };
-
-  // Handle clear button click
-  const handleClear = () => {
-    setLocalValue('');
-    onChange?.('');
-  };
-
-  return (
-    <div className={`relative ${className}`}>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Icon className="h-4 w-4 text-gray-400" aria-hidden="true" />
-        </div>
-        <input
-          type="text"
-          value={localValue}
-          onChange={handleChange}
-          disabled={disabled}
-          className={`
-            block w-full pl-10 pr-10 py-2.5
-            bg-white dark:bg-gray-800
-            border border-gray-300 dark:border-gray-600
-            rounded-lg
-            text-sm text-gray-900 dark:text-gray-100
-            placeholder-gray-500 dark:placeholder-gray-400
-            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-            disabled:bg-gray-100 disabled:cursor-not-allowed
-            transition-colors duration-200
-          `}
-          placeholder={placeholder}
-          aria-label={ariaLabel}
-        />
-        {localValue && (
-          <button
-            type="button"
-            onClick={handleClear}
-            className={`
-              absolute inset-y-0 right-0 pr-3 flex items-center
-              text-gray-400 hover:text-gray-500
-              transition-colors duration-200
-              ${disabled ? 'hidden' : ''}
-            `}
-            aria-label="Clear search"
-          >
-            <FaTimes className="h-4 w-4" aria-hidden="true" />
-          </button>
-        )}
+  inputClassName = '',
+  iconClassName = '',
+  clearButtonClassName = ''
+}) => (
+  <div className={`group relative transform transition-all duration-300 hover:scale-[1.02] animate-fade-in-left ${className}`}>
+    {Icon && (
+      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+        <Icon className={`text-gray-400 group-hover:text-blue-500 transition-colors duration-300 ${iconClassName}`} />
       </div>
-    </div>
-  );
-}
+    )}
+    <input
+      type={type}
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => {
+        const newValue = e.target.value;
+        onChange(e);
+        // If the input is cleared manually, trigger onClear
+        if (newValue === '' && onClear) {
+          onClear();
+        }
+      }}
+      className={`w-full py-2.5 pl-12 pr-12 bg-white border border-gray-200 rounded-lg 
+        focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 
+        transition-all duration-300 placeholder-gray-400 
+        ${value ? 'text-gray-900' : 'text-gray-600'} 
+        ${inputClassName}`}
+    />
+    {value && onClear && (
+      <button
+        onClick={onClear}
+        className={`absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500 
+          transition-all duration-300 p-1 rounded-full hover:bg-gray-100 
+          transform hover:scale-110 active:scale-95 ${clearButtonClassName}`}
+        aria-label="Clear search"
+        title="Clear search"
+      >
+        <FaTimes />
+      </button>
+    )}
+  </div>
+));
 
 SearchInput.displayName = 'SearchInput';
 

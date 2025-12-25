@@ -1,22 +1,38 @@
-# Ignore Node.js dependencies in frontend & backend
+# Dependencies
 node_modules/
-frontend/node_modules/
-backend/node_modules/
+.pnp/
+.pnp.js
 
-# Ignore environment files (API keys, secrets)
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+
+# Production
+build/
+dist/
+
+# Environment files
 .env
-frontend/.env.local
-backend/.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
 
-# Ignore build files
-frontend/.next/
-backend/dist/
-backend/build/
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Ignore logs & system files
-logs/
-*.log
-npm-debug.log
-yarn-debug.log
-yarn-error.log
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
 .DS_Store
+Thumbs.db

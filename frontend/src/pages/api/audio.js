@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://medi-ai-backend.onrender.com'
 
 export const uploadAudio = async (file, token, userId, patientId, title) => {
   try {
@@ -31,7 +31,10 @@ export const fetchAudioRecords = async (token) => {
         'Authorization': `Bearer ${token}`,
       }
     });
-    return response.data;
+
+    // Ensure we have data and it's an array
+    const records = response?.data?.data || response?.data || [];
+    return { data: Array.isArray(records) ? records : [] };
   } catch (error) {
     console.error('Error fetching audio records:', error);
     throw error;
@@ -58,6 +61,7 @@ export const fetchAudioRecordById = async (recordId, token) => {
     throw error;
   }
 };
+
 
 
 // 📌 Get the download link for an audio file

@@ -1,107 +1,86 @@
-import React, { useState } from 'react';
-import { FaSpinner } from 'react-icons/fa';
+import React, { memo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { FaUserAlt, FaCalendar, FaClock, FaFileAlt, FaMicrophone, FaTimes } from 'react-icons/fa';
 
-function DetailRow({ label, value, name, editable, onChange }) {
-  return (
-    <div className="grid grid-cols-3 gap-4 py-3 border-b border-gray-200">
-      <dt className="text-sm font-medium text-gray-500">{label}</dt>
-      <dd className="col-span-2">
-        {editable ? (
-          <input
-            type="text"
-            name={name}
-            value={value || ''}
-            onChange={onChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-          />
-        ) : (
-          <span className="text-sm text-gray-900">{value || 'N/A'}</span>
-        )}
-      </dd>
-    </div>
-  );
-}
+const RecordDetails = memo(({ record, onClose }) => {
+  // Add effect to handle escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
 
-DetailRow.displayName = 'DetailRow';
+  if (!record) {
+    return null;
+  }
 
-function RecordDetails({ record, onSave, isEditing = false }) {
-  const [formData, setFormData] = useState(record);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!onSave) return;
-
-    setIsSubmitting(true);
-    try {
-      await onSave(formData);
-    } finally {
-      setIsSubmitting(false);
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
     }
   };
 
-  return (
-    <div className="bg-white p-6">
-      <form onSubmit={handleSubmit}>
-        <div className="space-y-1">
-          <DetailRow
-            label="Record ID"
-            value={record._id}
-            editable={false}
-            onChange={handleChange}
-          />
-          <DetailRow
-            label="Created Date"
-            value={`${record.createdDate} ${record.createdTime}`}
-            editable={false}
-            onChange={handleChange}
-          />
-          <DetailRow
-            label="Duration"
-            value={record.duration}
-            name="duration"
-            editable={isEditing}
-            onChange={handleChange}
-          />
-          <DetailRow
-            label="Notes"
-            value={record.notes}
-            name="notes"
-            editable={isEditing}
-            onChange={handleChange}
-          />
-        </div>
-
-        {isEditing && (
-          <div className="mt-6 flex justify-end gap-4">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 z-[100] overflow-hidden bg-black bg-opacity-50"
+      onClick={handleOverlayClick}
+    >
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div 
+          className="relative bg-white rounded-xl shadow-xl w-full max-w-3xl animate-scale"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header with Close Button */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-800">
+              {record.title || 'Untitled Record'}
+            </h2>
             <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={onClose}
+              className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
+              aria-label="Close modal"
             >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <FaSpinner className="animate-spin" />
-                  Saving...
-                </span>
-              ) : (
-                'Save Changes'
-              )}
+              <FaTimes className="w-5 h-5" />
             </button>
           </div>
-        )}
-      </form>
+
+          <div className="p-6 space-y-6 max-h-[calc(100vh-12rem)] overflow-y-auto">
+            {/* Patient Info and Date */}
+            <div className="flex flex-wrap gap-4 text-gray-600">
+              <div className="flex items-center gap-2">
+                <FaUserAlt className="w-4 h-4" />
+                <span>Patient ID: {record.patientId || 'No Patient ID'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FaCalendar className="w-4 h-4" />
+                <span>{record.createdDate || 'Date not available'}</span>
+              </div>
+            </div>    
+
+            {/* Report Content */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-gray-700">
+                <FaFileAlt className="w-4 h-4" />
+                <h3 className="text-lg font-semibold">Report</h3>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 border">
+                <pre className="whitespace-pre-wrap text-gray-700 font-mono text-sm">
+                  {record.formattedReport || 'No report available'}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
-}
+
+  return createPortal(modalContent, document.body);
+});
 
 RecordDetails.displayName = 'RecordDetails';
 
