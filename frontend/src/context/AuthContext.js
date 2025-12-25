@@ -61,7 +61,24 @@ export function AuthProvider({ children }) {
 
     try {
       const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, credentials);
+      
+      // Check if response has success field and token
+      if (!response.data.success) {
+        return {
+          success: false,
+          error: response.data.message || 'Login failed'
+        };
+      }
+      
       const { token: newToken } = response.data;
+      
+      if (!newToken) {
+        console.error('No token received from login response');
+        return {
+          success: false,
+          error: 'No token received from server'
+        };
+      }
       
       localStorage.setItem('token', newToken);
       const decoded = jwtDecode(newToken);
@@ -73,9 +90,10 @@ export function AuthProvider({ children }) {
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
       return {
         success: false,
-        error: error.response?.data?.message || 'Login failed'
+        error: errorMessage
       };
     }
   };

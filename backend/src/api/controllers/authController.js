@@ -46,28 +46,41 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Email and password are required" 
+      });
     }
 
     // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      console.log("❌ User not found for email:", email);
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid credentials" 
+      });
     }
 
-    console.log("🔍 Entered Password:", password);
-    console.log("🔐 Stored Hashed Password:", user.password);
+    console.log("🔍 Login attempt for email:", email);
+    console.log("🔐 Stored Hashed Password exists:", !!user.password);
 
     // Compare entered password with stored hashed password using comparePassword method
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      console.log("❌ Password mismatch for email:", email);
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid credentials" 
+      });
     }
 
     // Generate JWT Token with userId
     const token = generateToken(user);
+    console.log("✅ Login successful for email:", email);
 
     res.json({
+      success: true,
       message: "Login successful",
       token,
       user: {
@@ -78,7 +91,11 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error logging in user:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: "Server error", 
+      error: error.message 
+    });
   }
 };
 
