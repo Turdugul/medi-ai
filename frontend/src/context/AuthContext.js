@@ -60,10 +60,20 @@ export function AuthProvider({ children }) {
     if (typeof window === 'undefined') return { success: false };
 
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, credentials);
+      // Use environment variable or fallback to localhost for development
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const loginUrl = `${apiUrl}/api/auth/login`;
+      
+      console.log('🔍 Attempting login to:', loginUrl);
+      console.log('🔍 Credentials:', { email: credentials.email, password: '***' });
+      
+      const response = await axios.post(loginUrl, credentials);
+      
+      console.log('📥 Login response:', response.data);
       
       // Check if response has success field and token
       if (!response.data.success) {
+        console.error('❌ Login failed - no success flag:', response.data);
         return {
           success: false,
           error: response.data.message || 'Login failed'
@@ -73,13 +83,14 @@ export function AuthProvider({ children }) {
       const { token: newToken } = response.data;
       
       if (!newToken) {
-        console.error('No token received from login response');
+        console.error('❌ No token received from login response:', response.data);
         return {
           success: false,
           error: 'No token received from server'
         };
       }
       
+      console.log('✅ Login successful, storing token');
       localStorage.setItem('token', newToken);
       const decoded = jwtDecode(newToken);
       setUser(decoded);
@@ -89,7 +100,11 @@ export function AuthProvider({ children }) {
       router.push('/');
       return { success: true };
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Error message:', error.message);
+      
       const errorMessage = error.response?.data?.message || error.message || 'Login failed';
       return {
         success: false,
