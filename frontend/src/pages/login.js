@@ -5,7 +5,7 @@ import Link from "next/link";
 import { showToast } from "../components/Toast";
 import { FaEnvelope, FaLock, FaSpinner } from "react-icons/fa";
 import AuthLayout from "@/components/auth/AuthLayout";
-import { useAuth } from "@/context/AuthContext";
+import { loginUser } from "./api/auth";
 
 // Form validation schema
 const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -89,7 +89,6 @@ function Login() {
     }
   });
 
-  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -97,17 +96,19 @@ function Login() {
     console.log('🔍 Login form submitted with data:', { email: data.email, hasPassword: !!data.password });
     setLoading(true);
     try {
-      console.log('🔍 Calling login function from AuthContext...');
-      const result = await login(data);
-      console.log('🔍 Login result:', result);
+      console.log('🔍 Calling loginUser from api/auth (same pattern as register)...');
+      const response = await loginUser(data);
+      console.log('🔍 Login response:', response);
       
-      if (result && result.success) {
-        console.log('✅ Login successful in onSubmit');
+      if (response && response.token) {
+        console.log('✅ Login successful, token stored');
         showToast("success", "Login successful! Redirecting...");
+        // Reload page to let AuthContext pick up the token
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 500);
       } else {
-        const errorMsg = result?.error || "Login failed";
-        console.error('❌ Login failed in onSubmit:', errorMsg);
-        showToast("error", errorMsg);
+        throw new Error(response?.message || "Login failed");
       }
     } catch (error) {
       console.error('❌ Exception in onSubmit:', error);
@@ -115,7 +116,7 @@ function Login() {
     } finally {
       setLoading(false);
     }
-  }, [login]);
+  }, [router]);
 
   return (
     <AuthLayout title="Welcome Back!" subtitle="Sign in to your account">
