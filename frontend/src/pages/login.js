@@ -1,11 +1,19 @@
 import { useForm } from "react-hook-form";
-import { useState, useCallback, forwardRef } from "react";
+import { useState, useCallback, forwardRef, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { showToast } from "../components/Toast";
 import { FaEnvelope, FaLock, FaSpinner } from "react-icons/fa";
 import AuthLayout from "@/components/auth/AuthLayout";
 import { loginUser } from "./api/auth";
+
+// Debug: Log when module loads
+if (typeof window !== 'undefined') {
+  console.log('🔍 Login page module loaded (client-side)');
+  window.__LOGIN_PAGE_LOADED__ = true;
+} else {
+  console.log('🔍 Login page module loaded (server-side)');
+}
 
 // Form validation schema
 const EMAIL_PATTERN = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -78,6 +86,8 @@ function RegisterLink() {
 
 // Main login component
 function Login() {
+  console.log('🔍 Login component rendering');
+  
   const { 
     handleSubmit, 
     register, 
@@ -91,6 +101,12 @@ function Login() {
 
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  
+  // Debug: Log when component mounts
+  useEffect(() => {
+    console.log('🔍 Login component mounted');
+    console.log('🔍 loginUser function available:', typeof loginUser);
+  }, []);
 
   const onSubmit = useCallback(async (data) => {
     console.log('🔍 Login form submitted with data:', { email: data.email, hasPassword: !!data.password });

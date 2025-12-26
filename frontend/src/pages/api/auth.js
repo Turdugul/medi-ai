@@ -1,6 +1,13 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://medi-ai-backend.onrender.com'
 
-console.log('🔍 API_BASE_URL initialized:', API_BASE_URL);
+// Force console log that will definitely show
+if (typeof window !== 'undefined') {
+  window.__API_BASE_URL__ = API_BASE_URL;
+  console.log('🔍 API_BASE_URL initialized:', API_BASE_URL);
+  console.log('🔍 Window object available, API module loaded');
+} else {
+  console.log('🔍 API_BASE_URL initialized (server-side):', API_BASE_URL);
+}
 
 export const registerUser = async (userData) => {
   try {
