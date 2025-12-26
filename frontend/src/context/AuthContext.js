@@ -60,14 +60,20 @@ export function AuthProvider({ children }) {
     if (typeof window === 'undefined') return { success: false };
 
     try {
-      // Use environment variable or fallback to localhost for development
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      // Use environment variable - same as register
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://medi-ai-backend.onrender.com';
       const loginUrl = `${apiUrl}/api/auth/login`;
       
       console.log('🔍 Attempting login to:', loginUrl);
+      console.log('🔍 API URL from env:', process.env.NEXT_PUBLIC_API_URL);
       console.log('🔍 Credentials:', { email: credentials.email, password: '***' });
       
-      const response = await axios.post(loginUrl, credentials);
+      const response = await axios.post(loginUrl, credentials, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true
+      });
       
       console.log('📥 Login response:', response.data);
       
@@ -127,10 +133,23 @@ export function AuthProvider({ children }) {
     if (typeof window === 'undefined') return { success: false };
 
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, userData);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://medi-ai-backend.onrender.com';
+      const registerUrl = `${apiUrl}/api/auth/register`;
+      
+      console.log('🔍 Attempting registration to:', registerUrl);
+      
+      const response = await axios.post(registerUrl, userData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true
+      });
+      
+      console.log('📥 Registration response:', response.data);
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('❌ Registration error:', error);
+      console.error('❌ Error response:', error.response?.data);
       return {
         success: false,
         error: error.response?.data?.message || 'Registration failed'
