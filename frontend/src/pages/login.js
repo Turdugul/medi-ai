@@ -86,7 +86,11 @@ function RegisterLink() {
 
 // Main login component
 function Login() {
-  console.log('🔍 Login component rendering');
+  try {
+    console.log('🔍 Login component rendering');
+  } catch (e) {
+    console.error('❌ Error in Login render:', e);
+  }
   
   const { 
     handleSubmit, 
@@ -104,9 +108,15 @@ function Login() {
   
   // Debug: Log when component mounts
   useEffect(() => {
-    console.log('🔍 Login component mounted');
-    console.log('🔍 loginUser function available:', typeof loginUser);
-  }, []);
+    try {
+      console.log('🔍 Login component mounted');
+      console.log('🔍 loginUser function available:', typeof loginUser);
+      console.log('🔍 Router available:', !!router);
+      console.log('🔍 Window available:', typeof window !== 'undefined');
+    } catch (e) {
+      console.error('❌ Error in Login useEffect:', e);
+    }
+  }, [router]);
 
   const onSubmit = useCallback(async (data) => {
     console.log('🔍 Login form submitted with data:', { email: data.email, hasPassword: !!data.password });
@@ -119,9 +129,10 @@ function Login() {
       if (response && response.token) {
         console.log('✅ Login successful, token stored');
         showToast("success", "Login successful! Redirecting...");
-        // Reload page to let AuthContext pick up the token
+        // Use router.push instead of window.location for better Next.js integration
         setTimeout(() => {
-          window.location.href = '/';
+          console.log('🔍 Redirecting to home page using router...');
+          router.push('/');
         }, 500);
       } else {
         throw new Error(response?.message || "Login failed");
