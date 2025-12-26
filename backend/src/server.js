@@ -144,9 +144,33 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Root endpoint - API information
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    message: 'Dentist Assistant AI API',
+    status: 'ok',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      auth: {
+        register: 'POST /api/auth/register',
+        login: 'POST /api/auth/login',
+        profile: 'GET /api/auth/profile',
+        test: 'GET /api/auth/test'
+      },
+      audio: '/api/audio'
+    }
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
 });
 
 connectDB()
