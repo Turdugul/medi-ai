@@ -28,10 +28,12 @@ const getAllowedOrigins = () => {
     origins.push(
       'https://medi-ai-frontend.onrender.com',
       'https://dentists-assistant-ai-frontend.onrender.com',
-      'https://medi-ai.onrender.com',
-      'https://*.onrender.com' // Allow all Render subdomains
+      'https://medi-ai.onrender.com'
     );
+    // Allow all Render subdomains using wildcard pattern
+    origins.push('https://*.onrender.com');
   } else {
+    // Development: allow localhost
     origins.push('http://localhost:3000', 'http://localhost:3001');
   }
   
@@ -40,6 +42,30 @@ const getAllowedOrigins = () => {
 
 const allowedOrigins = getAllowedOrigins();
 console.log('🌐 Allowed CORS origins:', allowedOrigins);
+
+// Helper function to check if origin matches allowed pattern
+const isOriginAllowed = (origin, allowedOrigins) => {
+  return allowedOrigins.some(allowed => {
+    // Exact match
+    if (origin === allowed) {
+      return true;
+    }
+    
+    // Handle wildcard patterns like https://*.onrender.com or *.onrender.com
+    if (allowed.includes('*')) {
+      // Convert wildcard pattern to regex
+      // *.onrender.com -> .*\.onrender\.com
+      // https://*.onrender.com -> https://.*\.onrender\.com
+      const regexPattern = allowed
+        .replace(/\./g, '\\.')  // Escape dots
+        .replace(/\*/g, '.*');   // Replace * with .*
+      const regex = new RegExp(`^${regexPattern}$`);
+      return regex.test(origin);
+    }
+    
+    return false;
+  });
+};
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -50,22 +76,18 @@ const corsOptions = {
     }
     
     // Check if origin is in allowed list
-    const isAllowed = allowedOrigins.some(allowed => {
-      if (allowed.includes('*')) {
-        // Handle wildcard patterns like *.onrender.com
-        const pattern = allowed.replace('*.', '');
-        return origin.endsWith(pattern);
-      }
-      return origin === allowed;
-    });
+    const isAllowed = isOriginAllowed(origin, allowedOrigins);
     
+    // In production, only allow if explicitly in allowed list
+    // In development, allow all origins for easier debugging
     if (isAllowed || process.env.NODE_ENV !== 'production') {
       console.log(`✅ CORS allowing origin: ${origin}`);
       callback(null, true);
     } else {
       console.log(`⚠️  CORS blocked origin: ${origin}`);
       console.log(`⚠️  Allowed origins:`, allowedOrigins);
-      // In production, be more strict, but log the issue
+      console.log(`⚠️  NODE_ENV: ${process.env.NODE_ENV}`);
+      // In production, be strict
       callback(new Error(`Not allowed by CORS: ${origin}`));
     }
   },
@@ -80,28 +102,24 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Add headers middleware for additional CORS support
+// This ensures CORS headers are set even if cors middleware doesn't catch it
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
   if (origin) {
-    // Check if origin is allowed (same logic as corsOptions)
-    const isAllowed = allowedOrigins.some(allowed => {
-      if (allowed.includes('*')) {
-        // Handle wildcard patterns like *.onrender.com
-        const pattern = allowed.replace('*.', '');
-        return origin.endsWith(pattern);
-      }
-      return origin === allowed;
-    });
+    // Check if origin is allowed (use same logic as corsOptions)
+    const isAllowed = isOriginAllowed(origin, allowedOrigins);
     
+    // Only set Access-Control-Allow-Origin if origin is allowed OR in development
     if (isAllowed || process.env.NODE_ENV !== 'production') {
       res.header('Access-Control-Allow-Origin', origin);
     }
   } else if (process.env.NODE_ENV !== 'production') {
-    // Allow no origin in development
+    // Allow no origin in development only
     res.header('Access-Control-Allow-Origin', '*');
   }
   
+  // Always set these headers for CORS
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');

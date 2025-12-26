@@ -1,21 +1,32 @@
 // Determine API URL based on environment
 const getApiBaseUrl = () => {
-  // If explicitly set, use it
+  // If explicitly set, use it (highest priority)
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   
-  // In production (on Render), use production backend
+  // In browser, check hostname to determine environment
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    
     // If we're on Render (production), use production backend
-    if (hostname.includes('onrender.com') || hostname.includes('vercel.app') || process.env.NODE_ENV === 'production') {
+    if (hostname.includes('onrender.com') || hostname.includes('vercel.app')) {
       return 'https://medi-ai-backend.onrender.com';
+    }
+    
+    // For localhost, use local backend
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5000';
     }
   }
   
-  // Default fallback
-  return 'https://medi-ai-backend.onrender.com';
+  // Server-side: check NODE_ENV
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://medi-ai-backend.onrender.com';
+  }
+  
+  // Default to localhost for development
+  return 'http://localhost:5000';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -36,23 +47,45 @@ if (typeof window !== 'undefined') {
 export const registerUser = async (userData) => {
   try {
       console.log('🔍 registerUser called, URL:', `${API_BASE_URL}/api/auth/register`);
+      console.log('🔍 API_BASE_URL:', API_BASE_URL);
+      
       const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
           method: "POST",
           headers: {
               "Content-Type": "application/json",
           },
+          credentials: 'include', // Include credentials for CORS
           body: JSON.stringify(userData),
       });
 
-      const data = await response.json(); 
+      console.log('🔍 Register response status:', response.status);
+      console.log('🔍 Register response ok:', response.ok);
 
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-          throw new Error(data?.message || "Registration failed. Please try again.");
+        const errorData = await response.text();
+        console.error('❌ Register error data:', errorData);
+        let errorMessage;
+        try {
+          const jsonError = JSON.parse(errorData);
+          errorMessage = jsonError.message || "Registration failed";
+        } catch (e) {
+          errorMessage = errorData || "Invalid server response";
+        }
+        throw new Error(errorMessage);
       }
+
+      const data = await response.json(); 
+      console.log('🔍 Register response data:', data);
 
       return data; 
   } catch (error) {
       console.error('❌ registerUser error:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
+      if (error.message === "Failed to fetch") {
+        throw new Error("Unable to connect to the server. Please check your internet connection or try again later.");
+      }
       throw new Error(error.message || "Network error. Please check your internet connection.");
   }
 };
@@ -71,6 +104,7 @@ export const loginUser = async (credentials) => {
       headers: { 
         "Content-Type": "application/json"
       },
+      credentials: 'include', // Include credentials for CORS - CRITICAL for production
       body: JSON.stringify(credentials),
     });
 
