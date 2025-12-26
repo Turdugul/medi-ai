@@ -94,15 +94,23 @@ function Login() {
   const router = useRouter();
 
   const onSubmit = useCallback(async (data) => {
+    console.log('🔍 Login form submitted with data:', { email: data.email, hasPassword: !!data.password });
     setLoading(true);
     try {
+      console.log('🔍 Calling login function from AuthContext...');
       const result = await login(data);
-      if (result.success) {
+      console.log('🔍 Login result:', result);
+      
+      if (result && result.success) {
+        console.log('✅ Login successful in onSubmit');
         showToast("success", "Login successful! Redirecting...");
       } else {
-        throw new Error(result.error || "Login failed");
+        const errorMsg = result?.error || "Login failed";
+        console.error('❌ Login failed in onSubmit:', errorMsg);
+        showToast("error", errorMsg);
       }
     } catch (error) {
+      console.error('❌ Exception in onSubmit:', error);
       showToast("error", error.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
