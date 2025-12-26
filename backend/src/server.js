@@ -16,19 +16,26 @@ console.log("API running on port:", PORT);
 
 // CORS configuration - use environment variable or default origins
 const getAllowedOrigins = () => {
+  const origins = [];
+  
+  // Add FRONTEND_URL if set
   if (process.env.FRONTEND_URL) {
-    return [process.env.FRONTEND_URL];
+    origins.push(process.env.FRONTEND_URL);
   }
   
   if (process.env.NODE_ENV === 'production') {
-    return [
+    // Add all possible production frontend URLs
+    origins.push(
       'https://medi-ai-frontend.onrender.com',
       'https://dentists-assistant-ai-frontend.onrender.com',
-      'https://medi-ai.onrender.com'
-    ];
+      'https://medi-ai.onrender.com',
+      'https://*.onrender.com' // Allow all Render subdomains
+    );
+  } else {
+    origins.push('http://localhost:3000', 'http://localhost:3001');
   }
   
-  return ['http://localhost:3000', 'http://localhost:3001'];
+  return origins;
 };
 
 const allowedOrigins = getAllowedOrigins();
@@ -37,13 +44,29 @@ console.log('🌐 Allowed CORS origins:', allowedOrigins);
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('⚠️  Request with no origin - allowing');
+      return callback(null, true);
+    }
     
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+    // Check if origin is in allowed list
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed.includes('*')) {
+        // Handle wildcard patterns like *.onrender.com
+        const pattern = allowed.replace('*.', '');
+        return origin.endsWith(pattern);
+      }
+      return origin === allowed;
+    });
+    
+    if (isAllowed || process.env.NODE_ENV !== 'production') {
+      console.log(`✅ CORS allowing origin: ${origin}`);
       callback(null, true);
     } else {
       console.log(`⚠️  CORS blocked origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      console.log(`⚠️  Allowed origins:`, allowedOrigins);
+      // In production, be more strict, but log the issue
+      callback(new Error(`Not allowed by CORS: ${origin}`));
     }
   },
   credentials: true,
@@ -60,9 +83,21 @@ app.use(cors(corsOptions));
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } else if (!origin && process.env.NODE_ENV !== 'production') {
+  if (origin) {
+    // Check if origin is allowed (same logic as corsOptions)
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed.includes('*')) {
+        // Handle wildcard patterns like *.onrender.com
+        const pattern = allowed.replace('*.', '');
+        return origin.endsWith(pattern);
+      }
+      return origin === allowed;
+    });
+    
+    if (isAllowed || process.env.NODE_ENV !== 'production') {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
+  } else if (process.env.NODE_ENV !== 'production') {
     // Allow no origin in development
     res.header('Access-Control-Allow-Origin', '*');
   }
