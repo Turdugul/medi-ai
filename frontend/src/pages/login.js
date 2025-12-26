@@ -150,11 +150,31 @@ function Login() {
           router.push('/');
         }, 300);
       } else {
-        throw new Error(response?.message || "Login failed");
+        // Extract error message from response
+        const errorMessage = response?.message || response?.error || "Login failed. Please check your credentials and try again.";
+        console.error('❌ Login failed - response:', response);
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('❌ Exception in onSubmit:', error);
-      showToast("error", error.message || "Login failed. Please try again.");
+      console.error('❌ Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
+      
+      // Show specific error message from backend or a user-friendly message
+      let errorMessage = "Login failed. Please try again.";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      showToast("error", errorMessage);
     } finally {
       setLoading(false);
     }

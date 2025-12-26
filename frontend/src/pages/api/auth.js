@@ -2,30 +2,39 @@
 const getApiBaseUrl = () => {
   // If explicitly set, use it (highest priority)
   if (process.env.NEXT_PUBLIC_API_URL) {
+    console.log('🔍 Using NEXT_PUBLIC_API_URL from env:', process.env.NEXT_PUBLIC_API_URL);
     return process.env.NEXT_PUBLIC_API_URL;
   }
   
   // In browser, check hostname to determine environment
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    console.log('🔍 Detected hostname:', hostname);
     
     // If we're on Render (production), use production backend
     if (hostname.includes('onrender.com') || hostname.includes('vercel.app')) {
+      console.log('🔍 Production hostname detected, using production backend');
       return 'https://medi-ai-backend.onrender.com';
     }
     
     // For localhost, use local backend
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      console.log('🔍 Localhost detected, using local backend');
       return 'http://localhost:5000';
     }
+    
+    console.log('⚠️ Unknown hostname, defaulting to production backend');
+    return 'https://medi-ai-backend.onrender.com';
   }
   
   // Server-side: check NODE_ENV
   if (process.env.NODE_ENV === 'production') {
+    console.log('🔍 Server-side production detected');
     return 'https://medi-ai-backend.onrender.com';
   }
   
   // Default to localhost for development
+  console.log('🔍 Defaulting to localhost backend');
   return 'http://localhost:5000';
 };
 
@@ -176,10 +185,24 @@ export const loginUser = async (credentials) => {
       let errorMessage;
       try {
         const jsonError = JSON.parse(errorData);
-        errorMessage = jsonError.message || "Login failed";
+        // Try multiple possible error message fields
+        errorMessage = jsonError.message || jsonError.error || jsonError.data?.message || `Login failed (${response.status})`;
+        console.error('❌ Extracted error message from JSON:', errorMessage);
       } catch (e) {
-        errorMessage = errorData || `Server error: ${response.status}`;
+        // If JSON parsing fails, use the raw error data or a generic message
+        errorMessage = errorData || `Server error: ${response.status} ${response.statusText}`;
+        console.error('❌ Could not parse error as JSON, using raw data:', errorMessage);
       }
+      
+      // Provide user-friendly messages for common status codes
+      if (response.status === 400 && !errorMessage.includes('Invalid credentials')) {
+        errorMessage = "Invalid email or password. Please try again.";
+      } else if (response.status === 401) {
+        errorMessage = "Invalid credentials. Please check your email and password.";
+      } else if (response.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      }
+      
       throw new Error(errorMessage);
     }
 
@@ -198,7 +221,10 @@ export const loginUser = async (credentials) => {
     // Check for success field (same as register expects)
     if (!data || !data.success) {
       console.error('❌ Login failed - no success flag:', data);
-      throw new Error(data?.message || "Login failed");
+      // Extract error message from various possible response formats
+      const errorMessage = data?.message || data?.error || data?.data?.message || "Invalid credentials. Please check your email and password.";
+      console.error('❌ Error message extracted:', errorMessage);
+      throw new Error(errorMessage);
     }
     
     if (!data.token) {
