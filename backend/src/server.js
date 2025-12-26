@@ -115,6 +115,11 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
+  console.log(`   Origin: ${req.headers.origin || 'none'}`);
+  console.log(`   Content-Type: ${req.headers['content-type'] || 'none'}`);
+  if (req.method === 'OPTIONS') {
+    console.log(`   CORS Preflight request`);
+  }
   next();
 });
 

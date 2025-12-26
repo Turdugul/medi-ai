@@ -4,6 +4,10 @@ import authMiddleware from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+// Test endpoint to verify route is accessible
+router.get("/test", (req, res) => {
+  res.json({ message: "Auth routes are working", timestamp: new Date().toISOString() });
+});
 
 router.post("/register", register);
 
