@@ -57,32 +57,48 @@ export function AuthProvider({ children }) {
   };
 
   const login = async (credentials) => {
-    if (typeof window === 'undefined') return { success: false };
+    if (typeof window === 'undefined') {
+      console.error('❌ Login called on server side');
+      return { success: false, error: 'Cannot login on server side' };
+    }
 
     try {
       // Use environment variable - same as register
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://medi-ai-backend.onrender.com';
       const loginUrl = `${apiUrl}/api/auth/login`;
       
-      console.log('🔍 Attempting login to:', loginUrl);
+      console.log('🔍 ===== LOGIN ATTEMPT START =====');
+      console.log('🔍 Login URL:', loginUrl);
       console.log('🔍 API URL from env:', process.env.NEXT_PUBLIC_API_URL);
-      console.log('🔍 Credentials:', { email: credentials.email, password: '***' });
+      console.log('🔍 Credentials email:', credentials?.email);
+      console.log('🔍 Has password:', !!credentials?.password);
       
+      if (!credentials || !credentials.email || !credentials.password) {
+        console.error('❌ Missing credentials');
+        return {
+          success: false,
+          error: 'Email and password are required'
+        };
+      }
+      
+      console.log('🔍 Making axios POST request...');
       const response = await axios.post(loginUrl, credentials, {
         headers: {
           'Content-Type': 'application/json',
         },
-        withCredentials: true
+        withCredentials: true,
+        timeout: 30000 // 30 second timeout
       });
       
-      console.log('📥 Login response:', response.data);
+      console.log('📥 Login response received:', response.status);
+      console.log('📥 Login response data:', response.data);
       
       // Check if response has success field and token
-      if (!response.data.success) {
+      if (!response.data || !response.data.success) {
         console.error('❌ Login failed - no success flag:', response.data);
         return {
           success: false,
-          error: response.data.message || 'Login failed'
+          error: response.data?.message || 'Login failed'
         };
       }
       
@@ -103,15 +119,35 @@ export function AuthProvider({ children }) {
       setToken(newToken);
       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
       
+      console.log('🔍 Redirecting to home page...');
       router.push('/');
+      console.log('✅ ===== LOGIN SUCCESS =====');
       return { success: true };
     } catch (error) {
-      console.error('❌ Login error:', error);
+      console.error('❌ ===== LOGIN ERROR =====');
+      console.error('❌ Error type:', error.constructor.name);
+      console.error('❌ Error message:', error.message);
       console.error('❌ Error response:', error.response?.data);
       console.error('❌ Error status:', error.response?.status);
-      console.error('❌ Error message:', error.message);
+      console.error('❌ Error config:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        data: error.config?.data
+      });
       
-      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+      let errorMessage = 'Login failed';
+      
+      if (error.response) {
+        // Server responded with error
+        errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        // Request made but no response
+        errorMessage = 'No response from server. Please check your connection.';
+      } else {
+        // Error setting up request
+        errorMessage = error.message || 'Failed to make login request';
+      }
+      
       return {
         success: false,
         error: errorMessage
