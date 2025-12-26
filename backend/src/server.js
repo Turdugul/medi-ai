@@ -23,18 +23,17 @@ const getAllowedOrigins = () => {
     origins.push(process.env.FRONTEND_URL);
   }
   
+  // Always allow localhost for local development (useful for testing)
+  origins.push('http://localhost:3000', 'http://localhost:3001');
+  
   if (process.env.NODE_ENV === 'production') {
     // Add all possible production frontend URLs
     origins.push(
       'https://medi-ai-frontend.onrender.com',
-      'https://dentists-assistant-ai-frontend.onrender.com',
-      'https://medi-ai.onrender.com'
+  
     );
     // Allow all Render subdomains using wildcard pattern
     origins.push('https://*.onrender.com');
-  } else {
-    // Development: allow localhost
-    origins.push('http://localhost:3000', 'http://localhost:3001');
   }
   
   return origins;
