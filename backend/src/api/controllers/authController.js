@@ -43,17 +43,26 @@ export const register = async (req, res) => {
 // Login User
 export const login = async (req, res) => {
   try {
+    console.log("🔍 Login request received");
+    console.log("📥 Request body:", { email: req.body?.email, hasPassword: !!req.body?.password });
+    console.log("🌐 Request origin:", req.headers.origin);
+    console.log("📋 Request headers:", {
+      'content-type': req.headers['content-type'],
+      'authorization': req.headers.authorization ? 'present' : 'missing'
+    });
+
     const { email, password } = req.body;
 
     if (!email || !password) {
+      console.log("❌ Missing email or password");
       return res.status(400).json({ 
         success: false,
         message: "Email and password are required" 
       });
     }
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    // Find user by email (case-insensitive search)
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       console.log("❌ User not found for email:", email);
       return res.status(400).json({ 
@@ -62,7 +71,7 @@ export const login = async (req, res) => {
       });
     }
 
-    console.log("🔍 Login attempt for email:", email);
+    console.log("🔍 User found, comparing password...");
     console.log("🔐 Stored Hashed Password exists:", !!user.password);
 
     // Compare entered password with stored hashed password using comparePassword method
@@ -78,6 +87,7 @@ export const login = async (req, res) => {
     // Generate JWT Token with userId
     const token = generateToken(user);
     console.log("✅ Login successful for email:", email);
+    console.log("🎫 Token generated:", token ? "Yes" : "No");
 
     res.json({
       success: true,
@@ -91,10 +101,11 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error logging in user:", error);
+    console.error("❌ Error stack:", error.stack);
     res.status(500).json({ 
       success: false,
       message: "Server error", 
-      error: error.message 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

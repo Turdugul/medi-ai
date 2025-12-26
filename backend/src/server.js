@@ -14,14 +14,41 @@ const PORT = process.env.PORT || 5000;
 console.log("Frontend URL from ENV: ", process.env.FRONTEND_URL);
 console.log("API running on port:", PORT);
 
-// CORS configuration
+// CORS configuration - use environment variable or default origins
+const getAllowedOrigins = () => {
+  if (process.env.FRONTEND_URL) {
+    return [process.env.FRONTEND_URL];
+  }
+  
+  if (process.env.NODE_ENV === 'production') {
+    return [
+      'https://medi-ai-frontend.onrender.com',
+      'https://dentists-assistant-ai-frontend.onrender.com',
+      'https://medi-ai.onrender.com'
+    ];
+  }
+  
+  return ['http://localhost:3000', 'http://localhost:3001'];
+};
+
+const allowedOrigins = getAllowedOrigins();
+console.log('🌐 Allowed CORS origins:', allowedOrigins);
+
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://medi-ai-frontend.onrender.com',]
-    : ['http://localhost:3000', 'http://localhost:3001'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      console.log(`⚠️  CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200
 };
@@ -32,17 +59,17 @@ app.use(cors(corsOptions));
 // Add headers middleware for additional CORS support
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? ['https://medi-ai-frontend.onrender.com', 'https://dentists-assistant-ai-frontend.onrender.com']
-    : ['http://localhost:3000', 'http://localhost:3001'];
   
   if (origin && allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
+  } else if (!origin && process.env.NODE_ENV !== 'production') {
+    // Allow no origin in development
+    res.header('Access-Control-Allow-Origin', '*');
   }
   
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Credentials', true);
+  res.header('Access-Control-Allow-Credentials', 'true');
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
