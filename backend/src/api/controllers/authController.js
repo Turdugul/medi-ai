@@ -10,14 +10,17 @@ export const register = async (req, res) => {
       return res.status(400).json({ success: false, message: "Name, email, and password are required." });
     }
 
-    // Check if user already exists
-    const userExists = await User.findOne({ email });
+    // Normalize email: lowercase and trim
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Check if user already exists (using normalized email)
+    const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
       return res.status(400).json({ success: false, message: "Email already exists" });
     }
 
-
-    const user = new User({ name, email, password });
+    // Create user with normalized email
+    const user = new User({ name, email: normalizedEmail, password });
 
     // Save the user to the database
     await user.save();
