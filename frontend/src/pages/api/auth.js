@@ -67,9 +67,15 @@ export const loginUser = async (credentials) => {
     const data = await response.json();
     console.log('🔍 Login response data:', data);
     
-    if (!data || !data.token) {
+    // Check for success field (same as register expects)
+    if (!data || !data.success) {
+      console.error('❌ Login failed - no success flag:', data);
+      throw new Error(data?.message || "Login failed");
+    }
+    
+    if (!data.token) {
       console.error('❌ No token in response:', data);
-      throw new Error("Invalid response format from server");
+      throw new Error("Invalid response format from server - no token");
     }
 
     console.log('✅ Storing token in localStorage');
