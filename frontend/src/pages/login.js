@@ -136,6 +136,21 @@ function Login() {
 
   return (
     <AuthLayout title="Welcome Back!" subtitle="Sign in to your account">
+      {/* Debug indicator - remove after debugging */}
+      {typeof window !== 'undefined' && (
+        <div style={{ 
+          position: 'fixed', 
+          top: 10, 
+          right: 10, 
+          background: 'red', 
+          color: 'white', 
+          padding: '5px 10px', 
+          zIndex: 9999,
+          fontSize: '12px'
+        }}>
+          DEBUG: Login Page Loaded
+        </div>
+      )}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <FormInput
           icon={FaEnvelope}
