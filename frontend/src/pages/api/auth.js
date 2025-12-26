@@ -1,12 +1,36 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://medi-ai-backend.onrender.com'
+// Determine API URL based on environment
+const getApiBaseUrl = () => {
+  // If explicitly set, use it
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  
+  // In production (on Render), use production backend
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // If we're on Render (production), use production backend
+    if (hostname.includes('onrender.com') || hostname.includes('vercel.app') || process.env.NODE_ENV === 'production') {
+      return 'https://medi-ai-backend.onrender.com';
+    }
+  }
+  
+  // Default fallback
+  return 'https://medi-ai-backend.onrender.com';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Force console log that will definitely show
 if (typeof window !== 'undefined') {
   window.__API_BASE_URL__ = API_BASE_URL;
+  window.__NEXT_PUBLIC_API_URL__ = process.env.NEXT_PUBLIC_API_URL;
   console.log('🔍 API_BASE_URL initialized:', API_BASE_URL);
+  console.log('🔍 NEXT_PUBLIC_API_URL from env:', process.env.NEXT_PUBLIC_API_URL);
+  console.log('🔍 Current hostname:', window.location.hostname);
   console.log('🔍 Window object available, API module loaded');
 } else {
   console.log('🔍 API_BASE_URL initialized (server-side):', API_BASE_URL);
+  console.log('🔍 NEXT_PUBLIC_API_URL from env:', process.env.NEXT_PUBLIC_API_URL);
 }
 
 export const registerUser = async (userData) => {
