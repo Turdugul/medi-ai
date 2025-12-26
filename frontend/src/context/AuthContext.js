@@ -35,6 +35,8 @@ export function AuthProvider({ children }) {
       return;
     }
     
+    setLoading(true); // Set loading to true when checking
+    
     try {
       const storedToken = localStorage.getItem('token');
       if (storedToken) {
@@ -42,18 +44,29 @@ export function AuthProvider({ children }) {
         const currentTime = Date.now() / 1000;
         
         if (decoded.exp < currentTime) {
+          console.log('🔍 Token expired, logging out');
           logout();
         } else {
+          console.log('✅ Valid token found, setting user:', { name: decoded.name, email: decoded.email });
           setUser(decoded);
           setToken(storedToken);
           axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
         }
+      } else {
+        console.log('🔍 No token found in localStorage');
+        setUser(null);
+        setToken(null);
       }
     } catch (error) {
-      console.error('Auth check error:', error);
-      logout();
+      console.error('❌ Auth check error:', error);
+      // Clear invalid token
+      localStorage.removeItem('token');
+      setUser(null);
+      setToken(null);
+      delete axios.defaults.headers.common['Authorization'];
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const login = async (credentials) => {
@@ -200,6 +213,7 @@ export function AuthProvider({ children }) {
     login,
     logout,
     register,
+    checkUser, // Expose checkUser so components can manually refresh user state
     isAuthenticated: !!user,
   };
 

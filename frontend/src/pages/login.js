@@ -6,6 +6,7 @@ import { showToast } from "../components/Toast";
 import { FaEnvelope, FaLock, FaSpinner } from "react-icons/fa";
 import AuthLayout from "@/components/auth/AuthLayout";
 import { loginUser } from "./api/auth";
+import { useAuth } from "@/context/AuthContext";
 
 // Debug: Log when module loads
 if (typeof window !== 'undefined') {
@@ -105,6 +106,7 @@ function Login() {
 
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { checkUser } = useAuth(); // Get checkUser from AuthContext to refresh user state
   
   // Debug: Log when component mounts
   useEffect(() => {
@@ -127,13 +129,26 @@ function Login() {
       console.log('🔍 Login response:', response);
       
       if (response && response.token) {
-        console.log('✅ Login successful, token stored');
+        console.log('✅ Login successful, token stored in localStorage');
+        
+        // CRITICAL FIX: Refresh AuthContext to pick up the new token
+        // This ensures the user state is updated immediately
+        console.log('🔍 Refreshing AuthContext to update user state...');
+        if (checkUser && typeof checkUser === 'function') {
+          checkUser();
+          console.log('✅ AuthContext refreshed');
+        } else {
+          console.warn('⚠️ checkUser function not available, will rely on automatic refresh');
+        }
+        
         showToast("success", "Login successful! Redirecting...");
+        
         // Use router.push instead of window.location for better Next.js integration
+        // Small delay to ensure state is updated before redirect
         setTimeout(() => {
           console.log('🔍 Redirecting to home page using router...');
           router.push('/');
-        }, 500);
+        }, 300);
       } else {
         throw new Error(response?.message || "Login failed");
       }
@@ -143,7 +158,7 @@ function Login() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router, checkUser]);
 
   return (
     <AuthLayout title="Welcome Back!" subtitle="Sign in to your account">

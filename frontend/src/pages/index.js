@@ -183,7 +183,7 @@ const UnauthenticatedContent = ({ features }) => {
 function Home() {
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -198,8 +198,9 @@ function Home() {
     showToast("info", "Logged out successfully");
   }
 
-  // Show loading screen during initial mount
-  if (!mounted) {
+  // Show loading screen during initial mount OR while AuthContext is checking authentication
+  // This prevents showing unauthenticated content before AuthContext finishes checking the token
+  if (!mounted || authLoading) {
     return <LoadingScreen />;
   }
 
